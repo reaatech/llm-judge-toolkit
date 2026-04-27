@@ -1,0 +1,67 @@
+{
+  "criteria": "tool-use",
+  "version": "1.0.0",
+  "description": "Gold-standard examples for tool-use correctness evaluation.",
+  "examples": [
+    {
+      "id": "tool-use-good-001",
+      "context": {
+        "query": "Get the current weather in San Francisco",
+        "toolCalls": [{ "name": "get_weather", "arguments": { "city": "San Francisco" } }],
+        "toolOutputs": [{ "temperature": 18, "condition": "sunny" }]
+      },
+      "humanLabel": 1.0,
+      "expectedCategory": "good",
+      "source": "synthetic"
+    },
+    {
+      "id": "tool-use-good-002",
+      "context": {
+        "query": "Calculate 15 * 23",
+        "toolCalls": [{ "name": "calculator", "arguments": { "expression": "15*23" } }],
+        "toolOutputs": [{ "result": 345 }]
+      },
+      "humanLabel": 1.0,
+      "expectedCategory": "good",
+      "source": "synthetic"
+    },
+    {
+      "id": "tool-use-bad-001",
+      "context": {
+        "query": "Get the current weather in San Francisco",
+        "toolCalls": [
+          { "name": "send_email", "arguments": { "to": "user@example.com", "subject": "Weather" } }
+        ],
+        "toolOutputs": []
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic",
+      "notes": "Wrong tool selected"
+    },
+    {
+      "id": "tool-use-bad-002",
+      "context": {
+        "query": "Calculate 15 * 23",
+        "toolCalls": [{ "name": "calculator", "arguments": { "expression": "15+23" } }],
+        "toolOutputs": [{ "result": 38 }]
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic",
+      "notes": "Wrong parameters passed to correct tool"
+    },
+    {
+      "id": "tool-use-borderline-001",
+      "context": {
+        "query": "Get the weather in San Francisco and New York",
+        "toolCalls": [{ "name": "get_weather", "arguments": { "city": "San Francisco" } }],
+        "toolOutputs": [{ "temperature": 18, "condition": "sunny" }]
+      },
+      "humanLabel": 0.5,
+      "expectedCategory": "borderline",
+      "source": "synthetic",
+      "notes": "Only fetched weather for one of two cities"
+    }
+  ]
+}

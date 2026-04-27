@@ -1,0 +1,103 @@
+{
+  "criteria": "faithfulness",
+  "version": "1.0.0",
+  "description": "Gold-standard examples for faithfulness evaluation. Human labels are 0-1 scores.",
+  "examples": [
+    {
+      "id": "faithfulness-good-001",
+      "context": {
+        "query": "What is the capital of France?",
+        "response": "The capital of France is Paris.",
+        "context": "Paris is the capital and most populous city of France."
+      },
+      "humanLabel": 1.0,
+      "expectedCategory": "good",
+      "source": "synthetic",
+      "notes": "Direct, faithful answer"
+    },
+    {
+      "id": "faithfulness-good-002",
+      "context": {
+        "query": "Who wrote 1984?",
+        "response": "George Orwell wrote 1984, which was published in 1949.",
+        "context": "Nineteen Eighty-Four is a dystopian novel by George Orwell, published in 1949."
+      },
+      "humanLabel": 1.0,
+      "expectedCategory": "good",
+      "source": "synthetic",
+      "notes": "All claims supported by context"
+    },
+    {
+      "id": "faithfulness-good-003",
+      "context": {
+        "query": "What is the speed of light?",
+        "response": "The speed of light in a vacuum is approximately 299,792 kilometers per second.",
+        "context": "The speed of light in vacuum is exactly 299,792,458 metres per second (approximately 300,000 km/s)."
+      },
+      "humanLabel": 0.95,
+      "expectedCategory": "good",
+      "source": "synthetic",
+      "notes": "Minor rounding, essentially faithful"
+    },
+    {
+      "id": "faithfulness-bad-001",
+      "context": {
+        "query": "What is the capital of France?",
+        "response": "The capital of France is Berlin.",
+        "context": "Paris is the capital and most populous city of France."
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic",
+      "notes": "Directly contradicted by context"
+    },
+    {
+      "id": "faithfulness-bad-002",
+      "context": {
+        "query": "Who wrote 1984?",
+        "response": "Aldous Huxley wrote 1984 in 1932.",
+        "context": "Nineteen Eighty-Four is a dystopian novel by George Orwell, published in 1949."
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic",
+      "notes": "Wrong author and year"
+    },
+    {
+      "id": "faithfulness-bad-003",
+      "context": {
+        "query": "What is the speed of light?",
+        "response": "The speed of light is 150,000 km/s, and it was first measured by Galileo in 1600.",
+        "context": "The speed of light in vacuum is exactly 299,792,458 metres per second (approximately 300,000 km/s)."
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic",
+      "notes": "Wrong value and unsupported historical claim"
+    },
+    {
+      "id": "faithfulness-borderline-001",
+      "context": {
+        "query": "What is the capital of France?",
+        "response": "The capital of France is Paris, which is also the fashion capital of the world.",
+        "context": "Paris is the capital and most populous city of France."
+      },
+      "humanLabel": 0.6,
+      "expectedCategory": "borderline",
+      "source": "synthetic",
+      "notes": "Core claim is faithful, but 'fashion capital' is unsupported"
+    },
+    {
+      "id": "faithfulness-borderline-002",
+      "context": {
+        "query": "Who wrote 1984?",
+        "response": "George Orwell wrote 1984, and it is considered one of the greatest novels ever written.",
+        "context": "Nineteen Eighty-Four is a dystopian novel by George Orwell, published in 1949."
+      },
+      "humanLabel": 0.7,
+      "expectedCategory": "borderline",
+      "source": "synthetic",
+      "notes": "Core claim supported, 'greatest ever' is subjective/unsupported"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "criteria": "relevance",
+  "version": "1.0.0",
+  "description": "Gold-standard examples for relevance evaluation.",
+  "examples": [
+    {
+      "id": "relevance-good-001",
+      "context": {
+        "query": "What is the weather in Tokyo today?",
+        "response": "Today in Tokyo it is partly cloudy with a high of 22C and a low of 15C."
+      },
+      "humanLabel": 1.0,
+      "expectedCategory": "good",
+      "source": "synthetic"
+    },
+    {
+      "id": "relevance-good-002",
+      "context": {
+        "query": "Explain quantum computing in simple terms.",
+        "response": "Quantum computing uses quantum bits, or qubits, which can exist in multiple states at once, allowing certain calculations to be performed much faster than classical computers."
+      },
+      "humanLabel": 0.95,
+      "expectedCategory": "good",
+      "source": "synthetic"
+    },
+    {
+      "id": "relevance-bad-001",
+      "context": {
+        "query": "What is the weather in Tokyo today?",
+        "response": "The Eiffel Tower is located in Paris, France. It was completed in 1889."
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic"
+    },
+    {
+      "id": "relevance-bad-002",
+      "context": {
+        "query": "Explain quantum computing in simple terms.",
+        "response": "Apples are a popular fruit that grow on trees. They come in many colors including red, green, and yellow."
+      },
+      "humanLabel": 0.0,
+      "expectedCategory": "bad",
+      "source": "synthetic"
+    },
+    {
+      "id": "relevance-borderline-001",
+      "context": {
+        "query": "What is the weather in Tokyo today?",
+        "response": "Tokyo is the capital of Japan. It has a population of over 13 million people."
+      },
+      "humanLabel": 0.2,
+      "expectedCategory": "borderline",
+      "source": "synthetic",
+      "notes": "About Tokyo but doesn't answer the weather question"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "criteria": "coherence",
+  "version": "1.0.0",
+  "description": "Gold-standard examples for coherence evaluation.",
+  "examples": [
+    {
+      "id": "coherence-good-001",
+      "context": {
+        "response": "First, preheat the oven to 350F. Next, mix the flour and sugar in a large bowl. Then, add the eggs and butter, stirring until smooth. Finally, pour the batter into a greased pan and bake for 30 minutes."
+      },
+      "humanLabel": 1.0,
+      "expectedCategory": "good",
+      "source": "synthetic"
+    },
+    {
+      "id": "coherence-good-002",
+      "context": {
+        "response": "Climate change is caused by greenhouse gas emissions. These gases trap heat in the atmosphere, leading to rising global temperatures. As temperatures rise, we see melting ice caps, rising sea levels, and more extreme weather events."
+      },
+      "humanLabel": 0.95,
+      "expectedCategory": "good",
+      "source": "synthetic"
+    },
+    {
+      "id": "coherence-bad-001",
+      "context": {
+        "response": "The oven should be hot. Mix things. 30 minutes. Butter is important. First maybe flour. Sugar too."
+      },
+      "humanLabel": 0.1,
+      "expectedCategory": "bad",
+      "source": "synthetic"
+    },
+    {
+      "id": "coherence-bad-002",
+      "context": {
+        "response": "Climate change is caused by cars. The ice caps are melting. Greenhouse gases are bad. Weather is extreme. Temperatures are rising."
+      },
+      "humanLabel": 0.2,
+      "expectedCategory": "bad",
+      "source": "synthetic",
+      "notes": "Related sentences but no logical flow or transitions"
+    },
+    {
+      "id": "coherence-borderline-001",
+      "context": {
+        "response": "Preheat the oven. Mix the flour and sugar. The oven should be at 350F. Add eggs and butter. Stir until smooth. Bake for 30 minutes."
+      },
+      "humanLabel": 0.7,
+      "expectedCategory": "borderline",
+      "source": "synthetic",
+      "notes": "Correct steps but repetitive and slightly disorganized"
+    }
+  ]
+}
