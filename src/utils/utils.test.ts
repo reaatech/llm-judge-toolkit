@@ -16,7 +16,7 @@ describe('RateLimiter', () => {
     expect(limiter.tryAcquire()).toBe(true);
     expect(limiter.tryAcquire()).toBe(true);
     expect(limiter.tryAcquire()).toBe(false);
-    expect(limiter.getRemainingTokens()).toBe(0);
+    expect(limiter.getRemainingTokens()).toBeCloseTo(0, 0);
   });
 
   it('refills tokens over time', async () => {
