@@ -10,7 +10,7 @@ export const JudgmentMetadataSchema = z.object({
   templateVersion: z.string().optional(),
   duration: z.number().optional(),
   retries: z.number().int().min(0).default(0),
-  custom: z.record(z.unknown()).optional(),
+  custom: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type JudgmentMetadata = z.infer<typeof JudgmentMetadataSchema>;
