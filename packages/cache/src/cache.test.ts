@@ -1,10 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  CacheManager,
-  InMemoryCache,
-  FileCache,
-  RedisCache,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { CacheManager, FileCache, InMemoryCache, RedisCache } from './index.js';
 
 describe('@reaatech/llm-judge-cache', () => {
   it('should export CacheManager', () => {

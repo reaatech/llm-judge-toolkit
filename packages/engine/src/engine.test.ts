@@ -1,9 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  JudgmentEngine,
-  InMemoryEventBus,
-  RateLimiter,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { InMemoryEventBus, JudgmentEngine, RateLimiter } from './index.js';
 
 describe('@reaatech/llm-judge-engine', () => {
   it('should export JudgmentEngine', () => {

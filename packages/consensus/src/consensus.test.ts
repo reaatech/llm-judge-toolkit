@@ -1,9 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  MajorityVoting,
-  CheapFirstTiebreaker,
-  WeightedVoting,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { CheapFirstTiebreaker, MajorityVoting, WeightedVoting } from './index.js';
 
 describe('@reaatech/llm-judge-consensus', () => {
   it('should export MajorityVoting', () => {

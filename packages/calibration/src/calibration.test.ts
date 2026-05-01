@@ -1,10 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  CalibrationMetrics,
-  CalibrationRunner,
-  DatasetManager,
-  DriftDetector,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { CalibrationMetrics, CalibrationRunner, DatasetManager, DriftDetector } from './index.js';
 
 describe('@reaatech/llm-judge-calibration', () => {
   it('should export CalibrationMetrics', () => {

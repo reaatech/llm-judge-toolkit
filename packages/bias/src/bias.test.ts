@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  PositionBiasDetector,
-  LengthBiasDetector,
-  StyleBiasDetector,
   ComprehensiveBiasDetector,
+  LengthBiasDetector,
+  PositionBiasDetector,
+  StyleBiasDetector,
 } from './index.js';
 
 describe('@reaatech/llm-judge-bias', () => {

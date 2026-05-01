@@ -1,10 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  JudgmentSchema,
-  EvaluationCriteriaSchema,
-  JudgeError,
-  ProviderError,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { EvaluationCriteriaSchema, JudgeError, JudgmentSchema, ProviderError } from './index.js';
 
 describe('@reaatech/llm-judge-types', () => {
   it('should export JudgmentSchema', () => {

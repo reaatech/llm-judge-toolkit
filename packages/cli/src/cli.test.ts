@@ -1,10 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  parseArgs,
-  createProvider,
-  createTemplate,
-  readJsonlFile,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { createProvider, createTemplate, parseArgs, readJsonlFile } from './index.js';
 
 describe('@reaatech/llm-judge-cli', () => {
   it('should export parseArgs', () => {

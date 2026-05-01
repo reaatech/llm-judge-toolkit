@@ -1,10 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  OpenAIProvider,
-  AnthropicProvider,
-  LocalProvider,
-  ProviderFactory,
-} from './index.js';
+import { describe, expect, it } from 'vitest';
+import { AnthropicProvider, LocalProvider, OpenAIProvider, ProviderFactory } from './index.js';
 
 describe('@reaatech/llm-judge-providers', () => {
   it('should export OpenAIProvider', () => {
