@@ -6,9 +6,9 @@ Set up GitHub Actions CI/CD pipelines for automated testing, building, and deplo
 ## Capabilities
 - Create GitHub Actions workflows
 - Set up automated testing on PR and push
-- Configure build and publish pipelines
-- Implement semantic versioning and changelogs
-- Set up npm package publishing
+  - Configure build and publish pipelines via changesets
+  - Orchestrate builds with turbo across monorepo packages
+  - Implement semantic versioning and changelogs (changesets)
 - Configure deployment to various environments
 - Implement quality gates and checks
 - Set up automated dependency updates
@@ -115,7 +115,7 @@ jobs:
         run: pnpm lint
       
       - name: Format check
-        run: pnpm format:check
+        run: pnpm biome format --check .
       
       - name: Test with coverage
         run: pnpm test:coverage
@@ -152,12 +152,15 @@ jobs:
         run: pnpm install --frozen-lockfile
       
       - name: Build
-        run: pnpm build
+        run: turbo run build
       
-      - name: Publish to npm
-        run: pnpm publish --access public
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v1
+        with:
+          publish: pnpm build && changeset publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
 ### Release Workflow
@@ -203,12 +206,12 @@ jobs:
         run: pnpm build
       
       - name: Create Release
-        run: |
-          pnpm version ${{ github.event.inputs.version }}
-          git push origin main --tags
-          pnpm publish --access public
+        uses: changesets/action@v1
+        with:
+          publish: pnpm build && changeset publish
+          version: pnpm changeset version
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 

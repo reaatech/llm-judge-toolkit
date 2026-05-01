@@ -59,7 +59,7 @@ parameters:
 
 ### Cache Manager
 ```typescript
-// src/cache/manager.ts
+// packages/cache/src/manager.ts
 export class CacheManager {
   constructor(
     private backend: CacheBackend,
@@ -102,7 +102,7 @@ export class CacheManager {
 
 ### Cache Backends
 ```typescript
-// src/cache/backends.ts
+// packages/cache/src/backends.ts
 export interface CacheBackend {
   get(key: string): Promise<CacheItem | null>;
   set(key: string, item: CacheItem): Promise<void>;

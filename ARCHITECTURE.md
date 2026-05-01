@@ -1,788 +1,303 @@
 # LLM Judge Toolkit — Technical Architecture
 
-> **Note:** This document describes the *aspirational* architecture and design goals. Some features described here (streaming, queue, API server, WebSocket, Docker support, etc.) are planned for future releases and may not yet be implemented. See the source code and `DEV_PLAN.md` for current status.
-
-## System Overview
-
-The LLM Judge Toolkit is designed as a modular, extensible architecture that separates concerns between judgment execution, provider abstraction, caching, calibration, and bias detection. The system follows clean architecture principles with clear dependency boundaries.
+## Monorepo Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Application Layer                            │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │   CLI       │  │   SDK       │  │   API       │  │   Dashboard │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────────────┤
-│                         Core Services Layer                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │  Judgment   │  │  Consensus  │  │ Calibration │  │    Bias     │ │
-│  │   Engine    │  │   System    │  │    Suite    │  │  Detection  │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │    Cost     │  │   Cache     │  │    Batch    │  │ Monitoring  │ │
-│  │   Tracker   │  │   Manager   │  │  Processor  │  │   System    │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────────────┤
-│                         Domain Layer                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │  Templates  │  │    Types    │  │  Validators │  │   Events   │ │
-│  │   System    │  │   & Schemas │  │   (Zod)     │  │   Bus      │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────────────┤
-│                         Infrastructure Layer                         │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                    Provider Abstraction                      │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │   │
-│  │  │ OpenAI   │  │ Anthropic│  │  Azure   │  │  Local   │    │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │    Cache    │  │    Rate     │  │    Token    │  │    Cost    │ │
-│  │   Backends  │  │  Limiter    │  │   Counter   │  │ Calculator │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────────────┤
-│                         External Services                            │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ │
-│  │  OpenAI API │  │Anthropic API│  │Azure OpenAI │  │Local Models│ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+llm-judge-toolkit/                   (private root, pnpm@10.22.0)
+├── packages/
+│   ├── types/         @reaatech/llm-judge-types        Core types, Zod schemas, errors
+│   ├── providers/     @reaatech/llm-judge-providers    OpenAI, Anthropic, Local, Factory
+│   ├── templates/     @reaatech/llm-judge-templates    5 criteria templates + base + utils
+│   ├── engine/        @reaatech/llm-judge-engine       JudgmentEngine, EventBus, RateLimiter
+│   ├── consensus/     @reaatech/llm-judge-consensus    3 voting strategies
+│   ├── calibration/   @reaatech/llm-judge-calibration  Metrics, dataset, runner, drift + 5 JSON datasets
+│   ├── bias/          @reaatech/llm-judge-bias         Position, length, style, comprehensive detectors
+│   ├── cache/         @reaatech/llm-judge-cache        Manager, InMemory, File, Redis backends
+│   ├── infra/         @reaatech/llm-judge-infra        Cost tracker, logger, metrics, batch processor
+│   └── cli/           @reaatech/llm-judge-cli          evaluate + calibrate commands
+├── examples/
+│   └── 01-basic-judgment/                              Basic engine + provider + template usage
+├── .github/workflows/
+│   ├── ci.yml             Node 20+22 matrix, build → typecheck → lint → test
+│   └── release.yml        Changesets release + GitHub Packages mirror
+├── biome.json             Linting and formatting (Biome 1.9)
+├── turbo.json             Task orchestration (Turborepo 2.5)
+├── tsconfig.json          Base TypeScript config (NodeNext, ES2022, strict)
+└── tsconfig.typecheck.json  Root-level typecheck with path aliases for all packages
 ```
 
----
+Every package publishes dual CJS/ESM output via tsup with `--format cjs,esm --dts --clean`. All packages use `NodeNext` module resolution with `verbatimModuleSyntax`. The CLI package is the sole consumer of all other packages; it has a `bin` entry (`llm-judge`) for direct invocation.
 
-## Core Design Principles
+## Package Dependency Graph
 
-### 1. Separation of Concerns
-Each module has a single, well-defined responsibility. The judgment engine doesn't know about caching; the cache manager doesn't know about providers.
-
-### 2. Dependency Inversion
-High-level modules depend on abstractions, not concretions. Providers are pluggable through a common interface.
-
-### 3. Immutability
-All judgment results are immutable once created. This ensures reproducibility and simplifies caching.
-
-### 4. Idempotency
-All operations are idempotent where possible. Running the same judgment twice produces identical results (when cache is enabled).
-
-### 5. Observability First
-Every operation is instrumented with structured logging, metrics, and tracing from day one.
-
----
-
-## Module Architecture
-
-### 1. Types & Validation (`src/types/`)
-
-**Purpose:** Define all domain models and validation schemas.
-
-**Key Files:**
 ```
-src/types/
-├── index.ts              # Barrel exports
-├── judgment.ts           # Judgment domain models
-├── criteria.ts           # Evaluation criteria definitions
-├── config.ts             # Configuration schemas
-├── provider.ts           # Provider abstractions
-├── cache.ts              # Caching interfaces
-├── consensus.ts          # Consensus types
-├── calibration.ts        # Calibration types
-├── bias.ts               # Bias detection types
-├── cost.ts               # Cost tracking types
-├── events.ts             # Event system types
-└── schemas/              # Zod validation schemas
-    ├── judgment.schema.ts
-    ├── criteria.schema.ts
-    ├── config.schema.ts
-    └── ...
+types
+├── providers
+├── templates
+├── consensus
+└── cache
+     └── templates                  (CacheManager.buildCacheKey uses TemplateContext)
+
+types + templates                     → engine
+types + engine                        → bias, infra
+types + engine + templates            → bias
+types + engine + infra                → calibration
+providers + templates + engine + calibration + cache + infra  → cli
 ```
 
-**Core Types:**
+Dependency edges confirmed from `package.json` files:
+
+| Package      | Depends on                                              |
+|-------------|---------------------------------------------------------|
+| types       | zod                                                     |
+| providers   | types, peerDeps: openai (optional), @anthropic-ai/sdk   |
+| templates   | types                                                   |
+| engine      | types, templates, cache                                 |
+| consensus   | types                                                   |
+| calibration | types, engine, infra, zod                               |
+| bias        | types, engine, templates                                |
+| cache       | types, templates                                        |
+| infra       | types, engine, templates, pino                          |
+| cli         | types, providers, templates, engine, calibration, cache, infra |
+
+## Package Details
+
+### 1. `@reaatech/llm-judge-types` (packages/types)
+
+**Files:** `criteria.ts`, `provider.ts`, `cost.ts`, `cache.ts`, `judgment.ts`, `config.ts`, `consensus.ts`, `calibration.ts`, `bias.ts`, `events.ts`, `errors.ts`, `index.ts`
+
+**Key exports:**
+
+- **Error hierarchy** (`errors.ts`): `JudgeError` (base, with `code` string and optional `cause`) → `ProviderError`, `ValidationError`, `BudgetExceededError`, `TemplateError`, `CacheError`
+- **Criteria** (`criteria.ts`): `EvaluationCriteriaSchema` — Zod enum of `faithfulness | relevance | coherence | safety | tool-use | custom`. `CriteriaConfigSchema` with weight, threshold, customPrompt, rubric.
+- **Provider** (`provider.ts`): `LLMProvider` interface — `generateCompletion()`, `countTokens()`, `calculateCost()`, `checkHealth()`. `ProviderNameSchema` — `openai | anthropic | local`. `CompletionRequestSchema`, `CompletionResponseSchema`, `TokenUsageSchema`, `ModelInfoSchema`, `HealthStatusSchema`.
+- **Judgment** (`judgment.ts`): `JudgmentSchema` — id (UUID), criteria, score (0-1), reasoning, confidence, cost, metadata, timestamp, provider, model, templateVersion, rawResponse. `ConsensusJudgmentSchema` — id, individualJudgments, finalScore, agreementScore, method, tiebreakerUsed.
+- **Cache** (`cache.ts`): `CacheConfigSchema` — enabled, backend (`memory | file | redis | database`), ttl, maxSize, prefix. `CacheItemSchema` — judgment, cachedAt, expiresAt, accessCount, lastAccessed. `CacheBackend` interface — get, set, delete, touch, clear.
+- **Consensus** (`consensus.ts`): `ConsensusStrategy` interface — `name` + `execute(judgments: Judgment[]): ConsensusResult`. `ConsensusResultSchema`.
+- **Calibration** (`calibration.ts`): `CalibrationReportSchema` — cohensKappa, accuracy, precision, recall, f1Score, confusionMatrix, sampleSize, timestamp. `ConfusionMatrixSchema`.
+- **Bias** (`bias.ts`): `PositionBiasReportSchema` — hasBias, averageBias, biasByPosition, recommendation.
+- **Events** (`events.ts`): `JudgmentEvent` discriminated union — `judgment:completed`, `judgment:cached`, `judgment:error`, `consensus:completed`, `budget:exceeded`, `calibration:completed`, `bias:detected`. `EventBus` interface — `emit`, `on`, `off`.
+- **Config** (`config.ts`): `JudgeConfigSchema` — provider, model, cache, cost, calibration, bias, monitoring sub-objects.
+
+### 2. `@reaatech/llm-judge-providers` (packages/providers)
+
+**Files:** `openai.ts`, `anthropic.ts`, `local.ts`, `factory.ts`, `index.ts`
+
+All providers implement the `LLMProvider` interface from `@reaatech/llm-judge-types`. Each uses lazy client initialization (dynamic `import()` for SDK dependencies) and wraps errors in `ProviderError`.
+
+- **`OpenAIProvider`**: Wraps the `openai` SDK (v4), lazy-loaded. Models: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`. Per-model pricing (per million tokens). `countTokens()` uses a character-count heuristic (`ceil(length/4)`). `checkHealth()` fires a minimal completion to `gpt-4o-mini`.
+- **`AnthropicProvider`**: Wraps `@anthropic-ai/sdk`, lazy-loaded. Models: `claude-3-5-sonnet-20241022`, `claude-3-haiku-20240307`. Extracts `system` messages separately (Anthropic API has a dedicated system field). Converts non-`user`/`assistant` roles to errors. Validates that the response contains text content (not tool-use only).
+- **`LocalProvider`**: OpenAI-compatible HTTP client via `fetch`. Defaults to `http://localhost:11434/v1`. Supports `Authorization: Bearer` header if API key is provided. Handles AbortController timeouts. `calculateCost()` always returns zero cost.
+- **`ProviderFactory`**: Static factory with `create()` and `fromEnv()` methods. `create()` accepts `name`, `apiKey`, `baseURL`, `timeout`. `fromEnv()` reads `LLM_JUDGE_PROVIDER` (defaults to `openai`), `LLM_JUDGE_API_KEY`, `LLM_JUDGE_BASE_URL`, `LLM_JUDGE_TIMEOUT`. Falls back to `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` as appropriate. Validates unknown providers.
+
+### 3. `@reaatech/llm-judge-templates` (packages/templates)
+
+**Files:** `base.ts`, `utils.ts`, `faithfulness.ts`, `relevance.ts`, `coherence.ts`, `safety.ts`, `tool-use.ts`, `index.ts`
+
+All templates implement `JudgmentTemplate`: `name`, `version`, `criteria`, `buildPrompt(context)`, `parseResponse(response)`. Each template has a 500 KB `MAX_INPUT_LENGTH` limit.
+
+- **`FaithfulnessTemplate`** (v1.0.0): Requires both `context` (source material) and `response`. Produces a JSON response with `score`, `reasoning`, `confidence`, and `unsupported_claims`.
+- **`RelevanceTemplate`** (v1.0.0): Evaluates whether a response directly addresses the query.
+- **`CoherenceTemplate`** (v1.0.0): Evaluates logical flow, structure, and readability.
+- **`SafetyTemplate`** (v1.0.0): Requires only `response`. Checks for harmful content, bias, privacy violations, and misinformation. JSON output includes `violations` array.
+- **`ToolUseTemplate`** (v1.0.0): Evaluates tool call selection and argument correctness.
+
+**Utility functions** (`utils.ts`):
+- `safeScore(value)` — Clamps to 0-1, defaults to 0.5 for NaN/null/undefined.
+- `cleanAndParse(response)` — Strips markdown code fences, then `JSON.parse`.
+- `parseFallback(response)` — Regex extract from score/rating patterns, low confidence (0.3), truncates reasoning to 2000 chars.
+
+Key interfaces in `base.ts`: `Candidate` (id + content), `ToolCall` (name + arguments + output), `TemplateContext` (query, response, context, candidates, toolCalls, toolOutputs, conversation, custom), `PromptRequest` (system + user strings), `ParsedJudgment` (score, reasoning, confidence, optional metadata).
+
+### 4. `@reaatech/llm-judge-engine` (packages/engine)
+
+**Files:** `judge.ts`, `bus.ts`, `rate-limiter.ts`, `index.ts`
+
+- **`JudgmentEngine`**: Takes `provider` (LLMProvider), `template` (JudgmentTemplate), and optional `cache` (CacheManager), `eventBus` (EventBus), `rateLimiter` (RateLimiter), `config` (Partial\<EngineConfig>). Default config: `model: 'gpt-4o-mini'`, `temperature: 0.1`, `maxTokens: 2000`, `cacheEnabled: true`, `maxRetries: 3`, `retryDelay: 1000`.
+
+  `judge(context)` flow:
+  1. Check cache (SHA-256 content-addressed key, built via `CacheManager.buildCacheKey`). On hit, emit `judgment:cached`.
+  2. Call `template.buildPrompt(context)`.
+  3. Validate prompt (non-empty strings).
+  4. `executeWithRetry(prompt)` — with exponential backoff and opt-in `rateLimiter.acquire()`. Retries on rate limits, timeouts, server errors (429, 500, 503, connection errors). Non-retryable errors are re-thrown immediately.
+  5. Call `template.parseResponse(response.content)`.
+  6. `createJudgment()` — normalizes score and confidence to 0-1, calls `provider.calculateCost()`, assembles full `Judgment` with UUID, metadata.
+  7. Cache result (if enabled), emit `judgment:completed`.
+  8. Return `Judgment`.
+
+- **`InMemoryEventBus`**: Implements `EventBus` interface. In-memory `Map<string, Set<EventHandler>>`. Supports `emit`, `on`, `off`, `removeAllListeners`, `listenerCount`.
+
+- **`RateLimiter`**: Token bucket algorithm. Configurable `tokensPerInterval`, `intervalMs`, optional `maxTokens`. `acquire(tokens)` returns a Promise that resolves when tokens are available. `tryAcquire()` is non-blocking. Tokens refill continuously based on elapsed time.
+
+### 5. `@reaatech/llm-judge-consensus` (packages/consensus)
+
+**Files:** `strategies.ts`, `index.ts`
+
+Three strategies implementing `ConsensusStrategy`:
+
+- **`MajorityVoting`**: Confidence-weighted average. Computes agreement as `1 - min(1, sqrt(variance) * 2)`. Returns `finalScore` clamped to 0-1.
+- **`CheapFirstTiebreaker`**: Splits judgments into N cheap + remaining tiebreakers. If cheap judges (first two) agree within threshold (score diff ≤ 0.2), returns their average without tiebreakers. Otherwise averages all judges including tiebreakers. Configurable `cheapCount` (defaults to 2).
+- **`WeightedVoting`**: User-provided weight array matched to judgments. Same confidence-weighted computation but with explicit external weights instead of judgment confidence. Validates non-negative weights and length match.
+
+All strategies use a shared `computeAgreement()` helper based on score variance.
+
+### 6. `@reaatech/llm-judge-calibration` (packages/calibration)
+
+**Files:** `metrics.ts`, `dataset.ts`, `runner.ts`, `drift.ts`, `index.ts`
+
+**Gold-standard datasets:** `src/datasets/faithfulness.json`, `relevance.json`, `coherence.json`, `safety.json`, `tool-use.json` (5 JSON files).
+
+- **`CalibrationMetrics`**: Static methods. `cohensKappa()` — discretizes scores into 3 bins (0-0.33, 0.34-0.66, 0.67-1.0), computes observed vs expected agreement. `confusionMatrix()` — multi-class matrix with configurable thresholds. `accuracy()`, `precisionRecallF1()` — per-class metrics on the highest bin (positiveClass=2). `generateReport()` — combines all metrics into a `CalibrationReport`.
+
+- **`DatasetManager`**: Loads JSON gold-standard datasets from a configurable directory. Validates with Zod (`CalibrationDatasetSchema`). Handles missing files gracefully (returns empty dataset). `loadAll()` loads all 5 criteria. `getStats()` computes total/good/bad/borderline counts and average label.
+
+- **`CalibrationRunner`**: Takes an `engine` (JudgmentEngine), `criteria`, optional `datasetsDir`, `concurrency` (default 3), and `onProgress` callback. `run()`: loads dataset → processes examples in chunks with `Promise.all` → builds synthetic Judgment objects from scores → calls `CalibrationMetrics.generateReport()`. Returns predictions vs actuals per example plus failed count.
+
+- **`DriftDetector`**: Compares two `CalibrationReport` objects (baseline vs current). Computes `cohensKappaDelta` and `accuracyDelta`. Flags drift if either delta exceeds configurable thresholds (default 0.1). Produces a recommendation with context (degradation vs improvement).
+
+### 7. `@reaatech/llm-judge-bias` (packages/bias)
+
+**Files:** `position.ts`, `length.ts`, `style.ts`, `comprehensive.ts`, `index.ts`
+
+- **`PositionBiasDetector`**: Runs two judgments — original candidate order and reversed order — then compares aggregate scores. Position effect is the absolute difference. `detect()` returns a `PositionBiasReport` with `hasBias` flag, average bias, and recommendation. `debias()` runs both orders in parallel and returns a judgment with averaged score and confidence.
+
+- **`LengthBiasDetector`**: Evaluates multiple responses, collecting scores and character lengths. Computes Pearson correlation between length and score. If |r| exceeds threshold (default 0.3), flags as biased. Returns `LengthBiasReport` with correlation, per-item detail, and recommendation.
+
+- **`StyleBiasDetector`**: Transforms a base response through three style profiles — formal (contractions expanded, exclamation points removed), casual (contractions added, periods → exclamation points), bullet-points (sentences split into list). Then evaluates each variant against the original. Max style effect above threshold (default 0.1) triggers a bias flag.
+
+- **`ComprehensiveBiasDetector`**: Orchestrates all three detectors via `runAll()`. Accepts optional input for each detector dimension. Aggregates findings into a `ComprehensiveBiasReport` with combined `hasBias` flag and concatenated recommendations.
+
+### 8. `@reaatech/llm-judge-cache` (packages/cache)
+
+**Files:** `manager.ts`, `backends.ts`, `redis.ts`, `index.ts`
+
+- **`CacheManager`**: Wraps a `CacheBackend`. `get(key)` — checks enabled flag, validates expiration, touches access time, returns `CacheItem.judgment`. `set(key, judgment)` — creates `CacheItem` with TTL-based `expiresAt`. `delete()`, `clear()`. `buildCacheKey(params)` — SHA-256 hash of provider + model + template name/version + normalized context + temperature. Returns format: `{templateName}:{templateVersion}:{hash}`. Normalization trims strings, sorts candidates by ID, sorts tool calls by name.
+
+- **`InMemoryCache`**: `Map`-based store with LRU eviction at `maxSize` (default 10000). On set when full, evicts the oldest entry by `cachedAt`. Checks expiration on get.
+
+- **`FileCache`**: Filesystem backend (`~/.cache/llm-judge/` or configurable path). SHA-256 hashed filenames. Atomic writes via temp file + rename. JSON serialization with Date reviver. Handles ENOENT on clear gracefully.
+
+- **`RedisCache`**: Takes a RedisLike interface (compatible with `ioredis`/`node-redis`). Configurable TTL in seconds (default 86400) and key prefix. Expires on set via `setex`. Clear uses `keys` pattern match + `del` batch.
+
+### 9. `@reaatech/llm-judge-infra` (packages/infra)
+
+**Files:** `tracker.ts`, `logger.ts`, `metrics.ts`, `processor.ts`, `index.ts`
+
+- **`CostTracker`**: Stores judgments in a Map. Optional budget with period (`daily | weekly | monthly`) and alert threshold. `track()` throws `BudgetExceededError` on overflow and emits `budget:exceeded` event. `generateReport()` produces totalCost, judgmentCount, averageCostPerJudgment, and breakdowns by criteria/provider/model.
+
+- **Logger** (`logger.ts`): Pino instance (`LOG_LEVEL` env, ISO timestamps). Helper functions: `logJudgment()`, `logError()`, `logCacheHit()`, `logCacheMiss()`, `logBudgetExceeded()` — all structured with event names.
+
+- **`MetricsCollector`**: Counts judgments, cache hits/misses, failures, total latency, total score, total cost. `recordJudgment(score, latency, cost, cached)` increments counters. `snapshot()` returns `MetricsSnapshot`: judgmentsTotal, judgmentsCached, judgmentsFailed, averageLatency, averageScore, totalCost, cacheHitRate.
+
+- **`BatchProcessor`**: Takes `engine` (JudgmentEngine), `concurrency` (default 3), optional `onProgress` and `onError` callbacks. `process(items)` — processes `BatchItem[]` in concurrent chunks with `Promise.all`, returns `BatchResult[]` (each with judgment or error + duration). `processWithRetry()` — recursive retry of failed items (maxRetries default 2), only retrying retryable errors (rate limit, timeout, 503, server error).
+
+### 10. `@reaatech/llm-judge-cli` (packages/cli)
+
+**Files:** `cli.ts`, `index.ts`
+
+`cli.ts` serves as both the `bin` entrypoint (`#!/usr/bin/env node`) and an exported module. The binary is `llm-judge`.
+
+**Helper functions exported for reuse:**
+- `parseArgs(argv)` — Simple `--key value` / `-k value` / `--no-cache` parser. Supports short flags: `-i` (input), `-o` (output), `-c` (criteria), `-p` (provider), `-m` (model), `-b` (base-url), `-n` (concurrency), `-h` (help).
+- `createProvider(args)` — Maps `openai`/`anthropic`/`local` to concrete provider instances using `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `LLM_JUDGE_API_KEY` env vars.
+- `createTemplate(criteria)` — Maps criteria string to template class.
+- `readJsonlFile(path)` — Reads and parses JSONL, throws on invalid JSON with line number.
+
+**Commands:**
+
+`evaluate` — Reads input JSONL (`id`, `query`, `response`, `context`, optional `candidates`/`toolCalls`/`toolOutputs`). Creates `JudgmentEngine` + `BatchProcessor`. Outputs scored JSONL with `id`, `score`, `reasoning`, `confidence`, `cost`, `error`, `duration`. Exit code 1 if any evaluations fail.
+
+`calibrate` — Reads input JSONL with `humanLabel` field. Iterates serially through items (no batch), collects judgments. Calls `CalibrationMetrics.generateReport()`. Outputs JSON calibration report with cohensKappa, accuracy, precision, recall, f1Score, confusionMatrix, sampleSize.
+
+Both commands handle SIGINT (exit 130) and SIGTERM (exit 143) for graceful shutdown.
+
+## Data Flow
+
+### Judgment Flow
+
+```
+Client
+  └→ JudgmentEngine.judge(context)
+       ├→ CacheManager.buildCacheKey(context)           — SHA-256 content-addressed key
+       ├→ CacheManager.get(key)                         — check InMemory/File/Redis
+       │   └→ [hit] InMemoryEventBus.emit("judgment:cached") → return cached Judgment
+       ├→ template.buildPrompt(context)                  — criteria-specific prompt
+       ├→ validatePrompt(prompt)                         — non-empty string check
+       ├→ executeWithRetry(prompt)
+       │   ├→ rateLimiter?.acquire(1)                    — token bucket wait
+       │   ├→ provider.generateCompletion(request)       — OpenAI/Anthropic/Local HTTP
+       │   │   └→ calculateCost(usage)                   — per-model pricing
+       │   └→ [error] exponential backoff, max 3 retries (rate-limit/timeout/5xx only)
+       ├→ template.parseResponse(response.content)      — JSON parse with fallback
+       ├→ createJudgment(context, parsed, response)      — normalize score+confidence, UUID
+       ├→ CacheManager.set(key, judgment)                — store with TTL
+       └→ InMemoryEventBus.emit("judgment:completed")    — notify listeners
+```
+
+### Consensus Flow
+
+```
+Client
+  └→ strategy.execute(judgments: Judgment[])
+       ├─ MajorityVoting
+       │   └→ weightedSum(scores, confidences) / totalWeight → finalScore
+       │   └→ agreement = 1 − min(1, √variance × 2)
+       │
+       ├─ CheapFirstTiebreaker (cheapCount=N)
+       │   ├→ cheapJudgments = judgments[0..N]
+       │   ├→ tiebreakers = judgments[N..]
+       │   ├→ [|cheap[0].score − cheap[1].score| < 0.2 && no tiebreakers]
+       │   │   └→ return (cheap[0] + cheap[1]) / 2, tiebreakerUsed=false
+       │   └→ [else]
+       │       └→ average(all cheap + tiebreakers), tiebreakerUsed=true
+       │
+       └─ WeightedVoting (weights[])
+           └→ weightedSum(scores, weights) / totalWeight → finalScore
+           └→ agreement based on score variance
+```
+
+### Calibration Flow
+
+```
+Client
+  └→ CalibrationRunner.run()
+       ├→ DatasetManager.load(criteria)                  — load {criteria}.json
+       ├→ for each chunk of examples (concurrency=3):
+       │   └→ engine.judge(example.context)
+       │       ├→ [success] collect {predicted, actual, match}
+       │       └→ [failure] logError, skip
+       ├→ Build synthetic Judgment[] from predictions
+       └→ CalibrationMetrics.generateReport(predictions, humanLabels)
+           ├→ confusionMatrix → accuracy
+           ├→ precisionRecallF1
+           ├→ cohensKappa
+           └→ return CalibrationReport
+```
+
+## Key Interfaces
 
 ```typescript
-// src/types/judgment.ts
-export interface Judgment {
-  id: string;                    // UUID v4
-  criteria: EvaluationCriteria;
-  score: number;                 // 0-1 normalized
-  reasoning: string;
-  confidence: number;            // 0-1
-  cost: CostBreakdown;
-  metadata: JudgmentMetadata;
-  timestamp: Date;
-  provider: string;
-  model: string;
-  templateVersion: string;
-  rawResponse: LLMResponse;
+// @reaatech/llm-judge-types — provider.ts
+interface LLMProvider {
+  readonly name: string;
+  readonly models: ModelInfo[];
+  generateCompletion(request: CompletionRequest): Promise<CompletionResponse>;
+  countTokens(text: string): number;
+  calculateCost(usage: TokenUsage): CostBreakdown;
+  checkHealth(): Promise<HealthStatus>;
 }
 
-export interface ConsensusJudgment {
-  id: string;
-  individualJudgments: Judgment[];
-  finalScore: number;
-  agreementScore: number;        // 0-1 agreement among judges
-  method: ConsensusMethod;
-  tiebreakerUsed: boolean;
-  timestamp: Date;
+// @reaatech/llm-judge-templates — base.ts
+interface JudgmentTemplate {
+  readonly name: string;
+  readonly version: string;
+  readonly criteria: EvaluationCriteria;
+  buildPrompt(context: TemplateContext): PromptRequest;
+  parseResponse(response: string): ParsedJudgment;
 }
 
-// src/types/criteria.ts
-export enum EvaluationCriteria {
-  FAITHFULNESS = 'faithfulness',
-  RELEVANCE = 'relevance',
-  COHERENCE = 'coherence',
-  SAFETY = 'safety',
-  TOOL_USE = 'tool-use',
-  CUSTOM = 'custom'
-}
-
-export interface CriteriaConfig {
-  criteria: EvaluationCriteria;
-  weight?: number;               // For weighted consensus
-  threshold?: number;            // Pass/fail threshold
-  customPrompt?: string;         // For custom criteria
-  rubric?: RubricItem[];
-}
-```
-
-### 2. Provider Layer (`src/providers/`)
-
-**Purpose:** Abstract LLM provider differences behind a unified interface.
-
-**Key Files:**
-```
-src/providers/
-├── index.ts
-├── base.ts              # Abstract base class
-├── openai.ts            # OpenAI implementation
-├── anthropic.ts         # Anthropic implementation
-├── azure.ts             # Azure OpenAI implementation
-├── local.ts             # Local models (Ollama, LM Studio)
-├── registry.ts          # Provider registry
-└── types.ts             # Provider-specific types
-```
-
-**Provider Interface:**
-
-```typescript
-// src/providers/base.ts
-export abstract class LLMProvider {
-  abstract readonly name: string;
-  abstract readonly models: ModelInfo[];
-  
-  abstract generateCompletion(request: CompletionRequest): Promise<CompletionResponse>;
-  abstract countTokens(text: string): number;
-  abstract calculateCost(tokens: TokenCount): CostBreakdown;
-  
-  // Streaming support
-  abstract streamCompletion(request: CompletionRequest): AsyncIterable<StreamChunk>;
-  
-  // Health and capabilities
-  abstract getCapabilities(model: string): ModelCapabilities;
-  abstract checkHealth(): Promise<HealthStatus>;
-}
-
-export interface CompletionRequest {
-  model: string;
-  messages: Message[];
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  stop?: string[];
-  stream?: boolean;
-}
-
-export interface CompletionResponse {
-  id: string;
-  model: string;
-  choices: Choice[];
-  usage: TokenUsage;
-  duration: number;
-}
-```
-
-**Token Counting Strategy:**
-
-```typescript
-// src/utils/tokens.ts
-import { encoding_for_model, get_encoding } from 'tiktoken';
-
-export class TokenCounter {
-  private static cache = new Map<string, number>();
-  
-  static count(text: string, model: string = 'gpt-4'): number {
-    const cacheKey = `${model}:${text.substring(0, 100)}...`;
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!;
-    }
-    
-    let encoder;
-    try {
-      encoder = encoding_for_model(model as any);
-    } catch {
-      encoder = get_encoding('cl100k_base');
-    }
-    
-    let tokens: number;
-    try {
-      tokens = encoder.encode(text).length;
-    } finally {
-      encoder?.free();
-    }
-    
-    this.cache.set(cacheKey, tokens);
-    return tokens;
-  }
-}
-```
-
-### 3. Template System (`src/templates/`)
-
-**Purpose:** Manage prompt templates with versioning and customization.
-
-**Key Files:**
-```
-src/templates/
-├── index.ts
-├── base.ts              # Base template class
-├── faithfulness.ts      # Faithfulness template
-├── relevance.ts         # Relevance template
-├── coherence.ts         # Coherence template
-├── safety.ts            # Safety template
-├── tool-use.ts          # Tool use template
-├── custom.ts            # Custom template builder
-├── registry.ts          # Template registry
-└── versions/            # Template versioning
-    ├── v1/
-    ├── v2/
-    └── ...
-```
-
-**Template Interface:**
-
-```typescript
-// src/templates/base.ts
-export abstract class JudgmentTemplate {
-  abstract readonly name: string;
-  abstract readonly version: string;
-  abstract readonly criteria: EvaluationCriteria;
-  
-  abstract buildPrompt(context: TemplateContext): PromptRequest;
-  abstract parseResponse(response: string): ParsedJudgment;
-  abstract validateContext(context: TemplateContext): ValidationResult;
-  
-  // Template customization
-  withSystemPrompt(systemPrompt: string): this;
-  withExamples(examples: Example[]): this;
-  withRubric(rubric: RubricItem[]): this;
-}
-
-export interface TemplateContext {
-  query?: string;
-  response?: string;
-  context?: string;           // Source material for faithfulness
-  candidates?: Candidate[];   // For comparison judgments
-  toolCalls?: ToolCall[];     // For tool-use evaluation
-  toolOutputs?: any[];
-  conversation?: Message[];   // For multi-turn evaluation
-}
-```
-
-**Example Template (Faithfulness):**
-
-```typescript
-// src/templates/faithfulness.ts
-export class FaithfulnessTemplate extends JudgmentTemplate {
-  readonly name = 'faithfulness';
-  readonly version = '2.1.0';
-  readonly criteria = EvaluationCriteria.FAITHFULNESS;
-  
-  buildPrompt(context: TemplateContext): PromptRequest {
-    const { query, response, context: sourceMaterial } = context;
-    
-    return {
-      system: `You are an expert evaluator assessing faithfulness of responses to source material.
-Your task is to determine if the response is fully grounded in the provided context.
-A response is faithful if every claim can be directly traced to the source material.
-Score from 0 (completely unfaithful/hallucinated) to 1 (perfectly faithful).`,
-      
-      user: `## Source Material:
-${sourceMaterial}
-
-## Query:
-${query}
-
-## Response to Evaluate:
-${response}
-
-## Evaluation Instructions:
-1. Identify each claim in the response
-2. Check if each claim is supported by the source material
-3. Score based on the proportion of supported claims
-4. Provide detailed reasoning
-
-## Output Format:
-{
-  "score": 0.0-1.0,
-  "reasoning": "detailed explanation",
-  "unsupported_claims": ["list of unsupported claims"],
-  "confidence": 0.0-1.0
-}`
-    };
-  }
-  
-  parseResponse(response: string): ParsedJudgment {
-    try {
-      const parsed = JSON.parse(response);
-      return {
-        score: Math.max(0, Math.min(1, parsed.score)),
-        reasoning: parsed.reasoning,
-        confidence: parsed.confidence || 0.5,
-        metadata: {
-          unsupportedClaims: parsed.unsupported_claims || []
-        }
-      };
-    } catch {
-      // Fallback parsing for non-JSON responses
-      return this.parseFallback(response);
-    }
-  }
-}
-```
-
-### 4. Judgment Engine (`src/engine/`)
-
-**Purpose:** Execute judgments with retry logic, error handling, and streaming support.
-
-**Key Files:**
-```
-src/engine/
-├── index.ts
-├── judge.ts               # Main judgment executor
-├── batch.ts               # Batch processing
-├── stream.ts              # Streaming judgments
-├── retry.ts               # Retry logic
-├── queue.ts               # Internal job queue
-└── middleware.ts          # Middleware pipeline
-```
-
-**Core Judge Implementation:**
-
-```typescript
-// src/engine/judge.ts
-export class JudgmentEngine {
-  constructor(
-    private provider: LLMProvider,
-    private template: JudgmentTemplate,
-    private cache: CacheManager,
-    private config: EngineConfig,
-    private eventBus?: EventEmitter
-  ) {}
-  
-  async judge(context: TemplateContext): Promise<Judgment> {
-    const cacheKey = this.buildCacheKey(context);
-    
-    // Check cache first
-    if (this.config.cacheEnabled) {
-      const cached = await this.cache.get(cacheKey);
-      if (cached) return cached;
-    }
-    
-    // Build and validate prompt
-    const prompt = this.template.buildPrompt(context);
-    this.validatePrompt(prompt);
-    
-    // Execute with retries
-    const response = await this.executeWithRetry(prompt);
-    
-    // Parse and validate response
-    const parsed = this.template.parseResponse(response.content);
-    const judgment = this.createJudgment(context, parsed, response);
-    
-    // Cache result
-    if (this.config.cacheEnabled) {
-      await this.cache.set(cacheKey, judgment);
-    }
-    
-    // Emit event if event bus is configured
-    this.eventBus?.emit('judgment:completed', judgment);
-    
-    return judgment;
-  }
-  
-  private async executeWithRetry(prompt: PromptRequest): Promise<CompletionResponse> {
-    const maxRetries = this.config.maxRetries || 3;
-    const baseDelay = this.config.retryDelay || 1000;
-    
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await this.provider.generateCompletion({
-          ...prompt,
-          temperature: this.config.temperature,
-          maxTokens: this.config.maxTokens
-        });
-      } catch (error) {
-        if (attempt === maxRetries) throw error;
-        
-        const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-        await this.sleep(delay);
-      }
-    }
-    throw new Error('Unreachable');
-  }
-}
-```
-
-### 5. Consensus System (`src/consensus/`)
-
-**Purpose:** Combine multiple judgments for improved reliability.
-
-**Key Files:**
-```
-src/consensus/
-├── index.ts
-├── strategies.ts          # Consensus algorithms
-├── tiebreaker.ts          # Tiebreaker logic
-├── config.ts              # Consensus configuration
-└── optimizer.ts           # Cost/accuracy optimization
-```
-
-**Consensus Strategies:**
-
-```typescript
-// src/consensus/strategies.ts
-export interface ConsensusStrategy {
-  name: string;
-  execute(judgments: Judgment[]): ConsensusResult;
-}
-
-export class MajorityVoting implements ConsensusStrategy {
-  readonly name = 'majority-voting';
-  
-  execute(judgments: Judgment[]): ConsensusResult {
-    const scores = judgments.map(j => j.score);
-    const weights = judgments.map(j => j.confidence);
-    
-    // Weighted average
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    const weightedSum = scores.reduce((sum, score, i) => 
-      sum + score * weights[i], 0);
-    
-    const finalScore = weightedSum / totalWeight;
-    
-    // Calculate agreement (standard deviation)
-    const mean = finalScore;
-    const variance = scores.reduce((sum, score) => 
-      sum + Math.pow(score - mean, 2), 0) / scores.length;
-    const agreement = 1 - Math.min(1, Math.sqrt(variance) * 2);
-    
-    return {
-      finalScore,
-      agreementScore: agreement,
-      method: this.name,
-      individualJudgments: judgments
-    };
-  }
-}
-
-export class CheapFirstTiebreaker implements ConsensusStrategy {
-  readonly name = 'cheap-first-tiebreaker';
-  
-  async execute(
-    context: TemplateContext,
-    cheapJudge1: JudgmentEngine,
-    cheapJudge2: JudgmentEngine,
-    expensiveJudge: JudgmentEngine,
-    agreementThreshold: number = 0.8
-  ): Promise<ConsensusResult> {
-    // Run two distinct cheap judges (different instances or configurations)
-    const [j1, j2] = await Promise.all([
-      cheapJudge1.judge(context),
-      cheapJudge2.judge(context)
-    ]);
-    
-    const agreement = 1 - Math.abs(j1.score - j2.score);
-    
-    if (agreement >= agreementThreshold) {
-      return {
-        finalScore: (j1.score + j2.score) / 2,
-        agreementScore: agreement,
-        method: this.name,
-        individualJudgments: [j1, j2],
-        tiebreakerUsed: false
-      };
-    }
-    
-    // Run expensive tiebreaker
-    const j3 = await expensiveJudge.judge(context);
-    const allJudgments = [j1, j2, j3];
-    
-    // Majority voting among all three
-    const scores = allJudgments.map(j => j.score);
-    const finalScore = scores.reduce((a, b) => a + b, 0) / 3;
-    
-    return {
-      finalScore,
-      agreementScore: agreement,
-      method: this.name,
-      individualJudgments: allJudgments,
-      tiebreakerUsed: true
-    };
-  }
-}
-```
-
-### 6. Calibration Suite (`src/calibration/`)
-
-**Purpose:** Measure and improve judgment reliability through statistical analysis.
-
-**Key Files:**
-```
-src/calibration/
-├── index.ts
-├── dataset.ts             # Dataset management
-├── gold-standards.ts      # Pre-built gold standards
-├── metrics.ts             # Statistical metrics
-├── report.ts              # Report generation
-├── drift.ts               # Drift detection
-└── data/                  # Gold standard datasets
-    ├── faithfulness.json
-    ├── relevance.json
-    ├── coherence.json
-    ├── safety.json
-    └── tool-use.json
-```
-
-**Statistical Metrics:**
-
-```typescript
-// src/calibration/metrics.ts
-export class CalibrationMetrics {
-  static cohensKappa(judgments: Judgment[], humanLabels: number[]): number {
-    const n = judgments.length;
-    let observed = 0;
-    const judgeDist = new Map<number, number>();
-    const humanDist = new Map<number, number>();
-    
-    // Discretize scores to 3 categories (0-0.33, 0.34-0.66, 0.67-1.0)
-    const discretize = (score: number) => Math.min(2, Math.floor(score * 3));
-    
-    for (let i = 0; i < n; i++) {
-      const jCat = discretize(judgments[i].score);
-      const hCat = discretize(humanLabels[i]);
-      
-      if (jCat === hCat) observed++;
-      
-      judgeDist.set(jCat, (judgeDist.get(jCat) || 0) + 1);
-      humanDist.set(hCat, (humanDist.get(hCat) || 0) + 1);
-    }
-    
-    const po = observed / n;
-    
-    // Expected agreement by chance
-    let pe = 0;
-    for (const [cat, count] of judgeDist) {
-      const humanCount = humanDist.get(cat) || 0;
-      pe += (count / n) * (humanCount / n);
-    }
-    
-    return (po - pe) / (1 - pe);
-  }
-  
-  static confusionMatrix(
-    judgments: Judgment[], 
-    humanLabels: number[],
-    thresholds: number[] = [0.33, 0.66]
-  ): ConfusionMatrix {
-    const categories = thresholds.length + 1;
-    const matrix = Array(categories).fill(null).map(() => Array(categories).fill(0));
-    
-    const categorize = (score: number) => {
-      for (let i = 0; i < thresholds.length; i++) {
-        if (score <= thresholds[i]) return i;
-      }
-      return thresholds.length;
-    };
-    
-    for (let i = 0; i < judgments.length; i++) {
-      const pred = categorize(judgments[i].score);
-      const actual = categorize(humanLabels[i]);
-      matrix[pred][actual]++;
-    }
-    
-    return { matrix, categories, thresholds };
-  }
-}
-```
-
-### 7. Bias Detection (`src/bias/`)
-
-**Purpose:** Detect and mitigate systematic biases in judgments.
-
-**Key Files:**
-```
-src/bias/
-├── index.ts
-├── position.ts            # Position bias detection
-├── swap-test.ts           # Swap testing
-├── length.ts              # Length bias
-├── style.ts               # Style bias
-├── mitigation.ts          # Mitigation strategies
-└── report.ts              # Bias reports
-```
-
-**Position Bias Detection:**
-
-```typescript
-// src/bias/position.ts
-export class PositionBiasDetector {
-  async detect(
-    judge: JudgmentEngine,
-    candidates: Candidate[]
-  ): Promise<PositionBiasReport> {
-    if (candidates.length < 2) {
-      throw new Error('Position bias detection requires at least 2 candidates');
-    }
-    
-    // Original order
-    const originalOrder = await judge.judge({
-      candidates: candidates
-    });
-    
-    // Swapped order
-    const swappedCandidates = [...candidates].reverse();
-    const swappedOrder = await judge.judge({
-      candidates: swappedCandidates
-    });
-    
-    // Calculate bias
-    const originalScores = candidates.map((_, i) => 
-      this.extractScoreForCandidate(originalOrder, candidates[i].id)
-    );
-    const swappedScores = swappedCandidates.map((_, i) => 
-      this.extractScoreForCandidate(swappedOrder, swappedCandidates[i].id)
-    );
-    
-    const biasScores = originalScores.map((orig, i) => ({
-      candidateId: candidates[i].id,
-      originalPosition: i,
-      originalScore: orig,
-      swappedScore: swappedScores[candidates.length - 1 - i],
-      positionEffect: Math.abs(orig - swappedScores[candidates.length - 1 - i])
-    }));
-    
-    const averageBias = biasScores.reduce((sum, b) => sum + b.positionEffect, 0) / biasScores.length;
-    const hasBias = averageBias > 0.1; // 10% threshold
-    
-    return {
-      hasBias,
-      averageBias,
-      biasByPosition: biasScores,
-      recommendation: hasBias 
-        ? 'Use position debiasing: average scores from both orders'
-        : 'No significant position bias detected'
-    };
-  }
-  
-  async debias(
-    judge: JudgmentEngine,
-    candidates: Candidate[]
-  ): Promise<Judgment> {
-    // Run both orders and average
-    const [original, swapped] = await Promise.all([
-      judge.judge({ candidates }),
-      judge.judge({ candidates: [...candidates].reverse() })
-    ]);
-    
-    // Average the scores for each candidate
-    const debiasedScores = candidates.map(candidate => {
-      const origScore = this.extractScoreForCandidate(original, candidate.id);
-      const swappedScore = this.extractScoreForCandidate(swapped, candidate.id);
-      return (origScore + swappedScore) / 2;
-    });
-    
-    return {
-      ...original,
-      score: debiasedScores.reduce((a, b) => a + b, 0) / debiasedScores.length,
-      metadata: {
-        ...original.metadata,
-        debiased: true,
-        originalScores: debiasedScores
-      }
-    };
-  }
-}
-```
-
-### 8. Caching System (`src/cache/`)
-
-**Purpose:** Eliminate redundant API calls and reduce costs.
-
-**Key Files:**
-```
-src/cache/
-├── index.ts
-├── manager.ts             # Cache management
-├── backends.ts            # Backend implementations
-├── invalidation.ts        # Invalidation strategies
-├── warmup.ts              # Cache warming
-├── analytics.ts           # Cache analytics
-└── strategies.ts          # Caching strategies
-```
-
-**Cache Manager:**
-
-```typescript
-// src/cache/manager.ts
-export class CacheManager {
-  constructor(
-    private backend: CacheBackend,
-    private config: CacheConfig
-  ) {}
-  
-  async get(key: string): Promise<Judgment | null> {
-    const cached = await this.backend.get(key);
-    if (!cached) return null;
-    
-    // Check expiration
-    if (this.isExpired(cached)) {
-      await this.backend.delete(key);
-      return null;
-    }
-    
-    // Update access time for LRU
-    await this.backend.touch(key);
-    
-    return cached;
-  }
-  
-  async set(key: string, judgment: Judgment): Promise<void> {
-    const item: CacheItem = {
-      ...judgment,
-      cachedAt: new Date(),
-      expiresAt: new Date(Date.now() + this.config.ttl),
-      accessCount: 0
-    };
-    
-    await this.backend.set(key, item);
-  }
-  
-  private buildCacheKey(context: TemplateContext): string {
-    const normalized = this.normalizeContext(context);
-    const hash = crypto.createHash('sha256')
-      .update(JSON.stringify(normalized))
-      .digest('hex');
-    return `judgment:${this.template.name}:${this.template.version}:${hash}`;
-  }
-}
-```
-
-**Cache Backends:**
-
-```typescript
-// src/cache/backends.ts
-export interface CacheBackend {
+// @reaatech/llm-judge-types — cache.ts
+interface CacheBackend {
   get(key: string): Promise<CacheItem | null>;
   set(key: string, item: CacheItem): Promise<void>;
   delete(key: string): Promise<void>;
@@ -790,623 +305,95 @@ export interface CacheBackend {
   clear(): Promise<void>;
 }
 
-export class InMemoryCache implements CacheBackend {
-  private store = new Map<string, CacheItem>();
-  
-  async get(key: string): Promise<CacheItem | null> {
-    return this.store.get(key) || null;
-  }
-  
-  async set(key: string, item: CacheItem): Promise<void> {
-    this.store.set(key, item);
-  }
-  
-  async delete(key: string): Promise<void> {
-    this.store.delete(key);
-  }
-  
-  async touch(key: string): Promise<void> {
-    const item = this.store.get(key);
-    if (item) {
-      item.lastAccessed = new Date();
-      this.store.set(key, item);
+// @reaatech/llm-judge-types — events.ts
+interface EventBus {
+  emit<T extends JudgmentEvent['type']>(
+    event: T,
+    payload: Omit<Extract<JudgmentEvent, { type: T }>, 'type'>,
+  ): void;
+  on<T extends JudgmentEvent['type']>(
+    event: T,
+    handler: (payload: Omit<Extract<JudgmentEvent, { type: T }>, 'type'>) => void,
+  ): void;
+  off<T extends JudgmentEvent['type']>(
+    event: T,
+    handler: (payload: Omit<Extract<JudgmentEvent, { type: T }>, 'type'>) => void,
+  ): void;
+}
+
+// @reaatech/llm-judge-types — consensus.ts
+interface ConsensusStrategy {
+  name: string;
+  execute(judgments: Judgment[]): ConsensusResult;
+}
+```
+
+## Build System and Tooling
+
+| Tool | Purpose | Configuration |
+|------|---------|--------------|
+| **pnpm 10.22.0** | Package manager, workspace orchestration | `pnpm-workspace.yaml` (packages/*, examples/*) |
+| **Turborepo 2.5** | Task orchestration, caching | `turbo.json` — build depends on ^build, test depends on build |
+| **tsup 8.4** | Build tool (ESBuild-based) | Per-package: `tsup src/index.ts --format cjs,esm --dts --clean` |
+| **TypeScript 5.8** | Type checking | `tsconfig.json` — target ES2022, module NodeNext, strict, verbatimModuleSyntax |
+| **Biome 1.9** | Linting and formatting | `biome.json` — recommended rules + noExplicitAny + noNonNullAssertion, single quotes, trailing commas |
+| **Vitest 3.1** | Testing | Per-package `vitest run`, coverage via `@vitest/coverage-v8` |
+| **Changesets 2.28** | Versioning and changelog | `.changeset/config.json` with GitHub changelog generator |
+| **Zod 3.24** | Schema validation | Used in types, templates, calibration, cached throughout |
+| **Pino 9.6** | Structured logging | In infra package, `LOG_LEVEL` env, ISO timestamps |
+
+**tsconfig.typecheck.json** provides root-level type checking with path aliases mapping each `@reaatech/llm-judge-*` package to its `src/index.ts`:
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@reaatech/llm-judge-types": ["./packages/types/src/index.ts"],
+      "@reaatech/llm-judge-providers": ["./packages/providers/src/index.ts"],
+      // ... all 10 packages
     }
   }
-  
-  async clear(): Promise<void> {
-    this.store.clear();
-  }
-}
-
-export class RedisCache implements CacheBackend {
-  constructor(private redis: Redis) {}
-  
-  async get(key: string): Promise<CacheItem | null> {
-    const data = await this.redis.get(key);
-    return data ? JSON.parse(data) : null;
-  }
-  
-  async set(key: string, item: CacheItem): Promise<void> {
-    await this.redis.setex(key, 86400, JSON.stringify(item)); // 24h TTL
-  }
-  
-  async delete(key: string): Promise<void> {
-    await this.redis.del(key);
-  }
-  
-  async touch(key: string): Promise<void> {
-    await this.redis.expire(key, 86400);
-  }
-  
-  async clear(): Promise<void> {
-    await this.redis.flushdb();
-  }
 }
 ```
-
-### 9. Cost Tracking (`src/cost/`)
-
-**Purpose:** Track and optimize costs across all judgments.
-
-**Key Files:**
-```
-src/cost/
-├── index.ts
-├── tracker.ts             # Cost tracking
-├── budget.ts              # Budget management
-├── optimizer.ts           # Cost optimization
-└── reporting.ts           # Cost reports
-```
-
-**Cost Tracker:**
-
-```typescript
-// src/cost/tracker.ts
-export class CostTracker {
-  private costs = new Map<string, CostBreakdown>();
-  private budget: Budget | null = null;
-  
-  track(judgment: Judgment): void {
-    this.costs.set(judgment.id, judgment.cost);
-    
-    // Check budget
-    if (this.budget && this.getTotalCost() > this.budget.limit) {
-      this.emit('budget:exceeded', {
-        current: this.getTotalCost(),
-        limit: this.budget.limit
-      });
-    }
-  }
-  
-  getTotalCost(): number {
-    let total = 0;
-    for (const cost of this.costs.values()) {
-      total += cost.total;
-    }
-    return total;
-  }
-  
-  getCostByCriteria(criteria: EvaluationCriteria): number {
-    let total = 0;
-    for (const [id, cost] of this.costs.entries()) {
-      const judgment = this.getJudgment(id);
-      if (judgment?.criteria === criteria) {
-        total += cost.total;
-      }
-    }
-    return total;
-  }
-  
-  generateReport(period: DateRange): CostReport {
-    const filtered = this.filterByPeriod(period);
-    return {
-      totalCost: this.calculateTotal(filtered),
-      costByCriteria: this.groupByCriteria(filtered),
-      costByProvider: this.groupByProvider(filtered),
-      costByModel: this.groupByModel(filtered),
-      averageCostPerJudgment: this.calculateAverage(filtered),
-      projectedMonthlyCost: this.projectMonthly(filtered),
-      savingsFromCache: this.calculateCacheSavings(filtered)
-    };
-  }
-}
-```
-
-### 10. Monitoring & Observability (`src/monitoring/`)
-
-**Purpose:** Provide comprehensive visibility into system behavior.
-
-**Key Files:**
-```
-src/monitoring/
-├── index.ts
-├── logger.ts              # Structured logging
-├── metrics.ts             # Metrics collection
-├── tracing.ts             # Distributed tracing
-├── alerts.ts              # Alerting
-└── health.ts              # Health checks
-```
-
-**Structured Logging:**
-
-```typescript
-// src/monitoring/logger.ts
-import pino from 'pino';
-
-export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  formatters: {
-    level: (label) => ({ level: label }),
-  },
-  timestamp: pino.stdTimeFunctions.isoTime,
-});
-
-export function logJudgment(judgment: Judgment, duration: number): void {
-  logger.info({
-    event: 'judgment:completed',
-    judgmentId: judgment.id,
-    criteria: judgment.criteria,
-    score: judgment.score,
-    confidence: judgment.confidence,
-    cost: judgment.cost.total,
-    duration,
-    provider: judgment.provider,
-    model: judgment.model,
-    cached: judgment.metadata?.cached || false
-  });
-}
-
-export function logError(error: Error, context: ErrorContext): void {
-  logger.error({
-    event: 'error',
-    errorType: error.name,
-    errorMessage: error.message,
-    stack: error.stack,
-    ...context
-  });
-}
-```
-
----
-
-## Data Flow Diagrams
-
-### Single Judgment Flow
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │────▶│ Judgment │────▶│ Template │────▶│ Provider │
-│          │     │  Engine  │     │  System  │     │          │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-                     │                                  │
-                     ▼                                  ▼
-               ┌──────────┐                       ┌──────────┐
-               │  Cache   │◀────── Cache Hit ─────│  Cache   │
-               │ Manager  │                       │ Backend  │
-               └──────────┘                       └──────────┘
-                     │                                  │
-                     ▼                                  ▼
-               ┌──────────┐                       ┌──────────┐
-               │  Cost    │                       │  Token   │
-               │ Tracker  │                       │ Counter  │
-               └──────────┘                       └──────────┘
-```
-
-### Consensus Flow (Cheap-First with Tiebreaker)
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │────▶│ Consensus│────▶│ Cheap    │
-│          │     │ Strategy │     │ Judge 1  │
-└──────────┘     └──────────┘     └──────────┘
-                     │                  │
-                     │                  ▼
-                     │            ┌──────────┐
-                     │            │ Cheap    │
-                     │            │ Judge 2  │
-                     │            └──────────┘
-                     │                  │
-                     │                  ▼
-                     │            ┌──────────┐
-                     │            │ Check    │
-                     │            │Agreement │
-                     │            └──────────┘
-                     │                  │
-                     │         ┌────────┴────────┐
-                     │         │                 │
-                     │    ┌────▼────┐      ┌────▼────┐
-                     │    │Agreement│      │Disagree │
-                     │    │≥Threshold│     │<Threshold│
-                     │    └────┬────┘      └────┬────┘
-                     │         │                 │
-                     │         │            ┌────▼────┐
-                     │         │            │Expensive│
-                     │         │            │Tiebreaker│
-                     │         │            └────┬────┘
-                     │         │                 │
-                     └─────────┴─────────────────┘
-                               │
-                               ▼
-                         ┌──────────┐
-                         │ Consensus│
-                         │ Result   │
-                         └──────────┘
-```
-
-### Calibration Workflow
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │────▶│Calibration│────▶│  Load    │
-│          │     │  Suite   │     │Gold Data │
-└──────────┘     └──────────┘     └──────────┘
-                     │                  │
-                     ▼                  ▼
-               ┌──────────┐       ┌──────────┐
-               │  Run     │       │ Run      │
-               │ Judge on │──────▶│Human     │
-               │Gold Data │       │Labels    │
-               └──────────┘       └──────────┘
-                     │                  │
-                     ▼                  ▼
-               ┌──────────┐       ┌──────────┐
-               │ Judge    │       │Calculate │
-               │ Scores   │──────▶│Metrics   │
-               └──────────┘       └──────────┘
-                     │                  │
-                     ▼                  ▼
-               ┌──────────┐       ┌──────────┐
-               │ Compare  │──────▶│Cohen's   │
-               │Scores    │       │Kappa     │
-               └──────────┘       └──────────┘
-                     │
-                     ▼
-               ┌──────────┐
-               │Calibration│
-               │ Report   │
-               └──────────┘
-```
-
----
-
-## API Design
-
-### Public API Surface
-
-```typescript
-// src/index.ts
-export { JudgmentEngine } from './engine/judge';
-export { ConsensusJudge } from './consensus/strategies';
-export { CalibrationSuite } from './calibration/dataset';
-export { PositionBiasDetector } from './bias/position';
-export { CacheManager } from './cache/manager';
-export { CostTracker } from './cost/tracker';
-
-export * from './types';
-export * from './templates';
-```
-
-### Usage Examples
-
-**Basic Judgment:**
-```typescript
-import { JudgmentEngine, EvaluationCriteria, OpenAIProvider } from 'llm-judge-toolkit';
-
-const provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY });
-const judge = new JudgmentEngine({
-  provider,
-  criteria: EvaluationCriteria.FAITHFULNESS,
-  cache: true
-});
-
-const result = await judge.evaluate({
-  query: "What is the capital of France?",
-  response: "The capital of France is Paris.",
-  context: "Paris is the capital and largest city of France."
-});
-
-console.log(result.score); // 0.95
-console.log(result.reasoning); // "The response is fully supported..."
-```
-
-**Multi-Judge Consensus:**
-```typescript
-import { ConsensusJudge, ConsensusStrategy } from 'llm-judge-toolkit';
-
-const consensus = new ConsensusJudge({
-  strategy: ConsensusStrategy.CHEAP_FIRST_TIEBREAKER,
-  cheapModel: 'gpt-4-mini',
-  expensiveModel: 'gpt-4',
-  agreementThreshold: 0.8
-});
-
-const result = await consensus.evaluate({
-  candidates: [responseA, responseB],
-  criteria: EvaluationCriteria.RELEVANCE
-});
-
-console.log(result.finalScore);
-console.log(result.agreementScore);
-console.log(result.tiebreakerUsed);
-```
-
-**Calibration:**
-```typescript
-import { CalibrationSuite } from 'llm-judge-toolkit';
-
-const calibration = new CalibrationSuite({
-  provider: openaiProvider,
-  criteria: EvaluationCriteria.FAITHFULNESS
-});
-
-const report = await calibration.run();
-console.log(`Cohen's Kappa: ${report.cohensKappa}`);
-console.log(`Accuracy: ${report.accuracy}`);
-```
-
-**Bias Detection:**
-```typescript
-import { PositionBiasDetector } from 'llm-judge-toolkit';
-
-const detector = new PositionBiasDetector({
-  provider: openaiProvider
-});
-
-const biasReport = await detector.detect({
-  candidates: [responseA, responseB]
-});
-
-if (biasReport.hasBias) {
-  console.log(`Position bias detected: ${biasReport.averageBias}`);
-  const debiased = await detector.debias({
-    candidates: [responseA, responseB]
-  });
-}
-```
-
----
-
-## Configuration System
-
-### Configuration Schema
-
-```typescript
-// src/config/schema.ts
-export const configSchema = z.object({
-  // Provider configuration
-  provider: z.object({
-    name: z.enum(['openai', 'anthropic', 'azure', 'local']),
-    apiKey: z.string().optional(),
-    baseURL: z.string().optional(),
-    timeout: z.number().default(30000),
-    maxRetries: z.number().default(3)
-  }),
-  
-  // Model configuration
-  model: z.object({
-    name: z.string(),
-    temperature: z.number().min(0).max(2).default(0.1),
-    maxTokens: z.number().default(2000),
-    topP: z.number().min(0).max(1).optional()
-  }),
-  
-  // Cache configuration
-  cache: z.object({
-    enabled: z.boolean().default(true),
-    backend: z.enum(['memory', 'redis', 'file', 'database']).default('memory'),
-    ttl: z.number().default(86400000), // 24 hours
-    maxSize: z.number().default(10000)
-  }),
-  
-  // Cost configuration
-  cost: z.object({
-    budget: z.number().optional(),
-    alertThreshold: z.number().default(0.8), // 80% of budget
-    trackPerJudgment: z.boolean().default(true)
-  }),
-  
-  // Calibration configuration
-  calibration: z.object({
-    enabled: z.boolean().default(true),
-    minKappa: z.number().default(0.7),
-    recalibrateOnDrift: z.boolean().default(true)
-  }),
-  
-  // Bias detection configuration
-  bias: z.object({
-    detectPositionBias: z.boolean().default(true),
-    positionBiasThreshold: z.number().default(0.1),
-    autoDebias: z.boolean().default(false)
-  }),
-  
-  // Monitoring configuration
-  monitoring: z.object({
-    logLevel: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    enableTracing: z.boolean().default(false),
-    metricsBackend: z.enum(['prometheus', 'datadog', 'none']).default('none')
-  })
-});
-```
-
-### Environment Variables
-
-```bash
-# Provider Configuration
-LLM_JUDGE_PROVIDER=openai
-LLM_JUDGE_API_KEY=sk-...
-LLM_JUDGE_MODEL=gpt-4
-
-# Cache Configuration
-LLM_JUDGE_CACHE_ENABLED=true
-LLM_JUDGE_CACHE_BACKEND=redis
-LLM_JUDGE_CACHE_TTL=86400
-
-# Cost Configuration
-LLM_JUDGE_BUDGET=100.00
-LLM_JUDGE_COST_ALERT_THRESHOLD=0.8
-
-# Monitoring Configuration
-LLM_JUDGE_LOG_LEVEL=info
-LLM_JUDGE_ENABLE_TRACING=false
-```
-
----
-
-## Security Considerations
-
-### 1. API Key Management
-- Never log API keys
-- Support environment variables and secure vaults
-- Rotate keys regularly
-- Use principle of least privilege
-
-### 2. Input Validation
-- Validate all inputs with Zod schemas
-- Sanitize user-provided prompts
-- Limit input sizes to prevent abuse
-- Rate limit API calls
-
-### 3. Data Privacy
-- Don't store sensitive data in caches
-- Support data encryption at rest
-- Implement data retention policies
-- Provide data deletion capabilities
-
-### 4. Supply Chain Security
-- Pin all dependencies
-- Use security scanning in CI/CD
-- Monitor for vulnerabilities
-- Sign releases with GPG
-
----
-
-## Performance Considerations
-
-### 1. Latency Optimization
-- Parallel processing where possible
-- Streaming responses for large outputs
-- Connection pooling for API calls
-- Intelligent batching
-
-### 2. Memory Management
-- Stream large datasets
-- Implement pagination
-- Use generators for iteration
-- Clean up resources properly
-
-### 3. Throughput Optimization
-- Concurrent request handling
-- Connection pooling
-- Request deduplication
-- Intelligent queuing
-
----
-
-## Deployment Architecture
-
-### Single Server Deployment
-
-```
-┌─────────────────────────────────────┐
-│         Application Server          │
-│  ┌───────────────────────────────┐  │
-│  │    LLM Judge Toolkit          │  │
-│  │  ┌─────────────────────────┐  │  │
-│  │  │   In-Memory Cache       │  │  │
-│  │  └─────────────────────────┘  │  │
-│  └───────────────────────────────┘  │
-└─────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────┐
-│        External LLM Providers       │
-│  (OpenAI, Anthropic, Azure, etc.)   │
-└─────────────────────────────────────┘
-```
-
-### Distributed Deployment
-
-```
-┌─────────────────────────────────────────────────────┐
-│                    Load Balancer                    │
-└─────────────────────────────────────────────────────┘
-           │                    │                    │
-           ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   App Server 1  │  │   App Server 2  │  │   App Server 3  │
-│                 │  │                 │  │                 │
-│ LLM Judge       │  │ LLM Judge       │  │ LLM Judge       │
-│ Toolkit         │  │ Toolkit         │  │ Toolkit         │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-           │                    │                    │
-           └────────────────────┼────────────────────┘
-                                │
-                                ▼
-                    ┌─────────────────────┐
-                    │    Redis Cluster    │
-                    │   (Shared Cache)    │
-                    └─────────────────────┘
-                                │
-                                ▼
-                    ┌─────────────────────┐
-                    │  PostgreSQL/SQLite  │
-                    │  (Persistent Cache) │
-                    └─────────────────────┘
-                                │
-                                ▼
-                    ┌─────────────────────┐
-                    │  External LLM APIs  │
-                    └─────────────────────┘
-```
-
----
 
 ## Testing Strategy
 
-### Unit Tests
-- Test each module in isolation
-- Mock external dependencies
-- Target ≥90% code coverage
-- Test edge cases and error conditions
+Tests are colocated with source using `*.test.ts` naming, run via Vitest. The CI pipeline (`.github/workflows/ci.yml`) runs on Ubuntu with Node 20 and 22 in a matrix:
 
-### Integration Tests
-- Test module interactions
-- Use test doubles for external services
-- Test database and cache operations
-- Test error recovery
+```
+checkout → pnpm setup → pnpm install --frozen-lockfile → pnpm build → pnpm typecheck → pnpm lint → pnpm test
+```
 
-### End-to-End Tests
-- Test complete workflows
-- Use real (but cheap) models
-- Test with gold standard datasets
-- Validate against human judgments
+Key patterns:
+- Unit tests with mocked providers and templates for isolated logic testing
+- `vitest run` in each package, with `test:coverage` using V8 coverage provider
+- Root-level `turbo run test` orchestration with build dependencies
+- No end-to-end tests requiring live API keys in CI (tests use mocked clients)
 
-### Performance Tests
-- Load testing with concurrent requests
-- Latency benchmarks
-- Memory usage profiling
-- Cost analysis under load
+## CI/CD Pipeline
 
----
+- **CI (`ci.yml`)**: Runs on push/PR to `main`. Node 20 + 22 matrix. Steps: install → build → typecheck → lint → test. Uses `pnpm/action-setup` and `actions/setup-node` with pnpm cache.
+- **Release (`release.yml`)**: Manual trigger via `workflow_dispatch`. Runs on Node 22. Uses `changesets/action` to create release PRs and publish to npm registry. After publishing, mirrors all published packages to GitHub Packages (`https://npm.pkg.github.com`) using a generated `.npmrc`.
 
-## Future Considerations
+## Environment Variables
 
-### Extensibility Points
+| Variable | Used By | Default |
+|----------|---------|---------|
+| `OPENAI_API_KEY` | OpenAIProvider, ProviderFactory, CLI | — |
+| `ANTHROPIC_API_KEY` | AnthropicProvider, ProviderFactory, CLI | — |
+| `LLM_JUDGE_PROVIDER` | ProviderFactory.fromEnv() | `openai` |
+| `LLM_JUDGE_API_KEY` | ProviderFactory.fromEnv(), CLI | — |
+| `LLM_JUDGE_BASE_URL` | ProviderFactory.fromEnv() | — |
+| `LLM_JUDGE_TIMEOUT` | ProviderFactory.fromEnv() | — |
+| `LOG_LEVEL` | Pino logger (infra) | `info` |
 
-1. **Custom Templates** — Users can create and register custom evaluation templates
-2. **Custom Providers** — Support for additional LLM providers
-3. **Custom Consensus Strategies** — Pluggable consensus algorithms
-4. **Custom Cache Backends** — Support for additional caching solutions
-5. **Custom Metrics** — Extensible monitoring and metrics system
+## Security Considerations
 
-### Roadmap Beyond v1.0
-
-1. **Multi-modal Evaluation** — Support for image and video evaluation
-2. **Real-time Dashboards** — Web UI for monitoring and analysis
-3. **Automated Prompt Optimization** — ML-based prompt improvement
-4. **Cross-lingual Support** — Evaluation in multiple languages
-5. **Domain-specific Templates** — Industry-specific evaluation criteria
-
----
-
-*This architecture document is a living specification and will evolve as the project develops. All major architectural changes should be documented through Architecture Decision Records (ADRs).*
+- API keys are never logged — provider `toString()` masks keys to 7 characters.
+- Provider SDKs (`openai`, `@anthropic-ai/sdk`) are optional peer dependencies, lazy-loaded via dynamic `import()` only when actually used.
+- FileCache uses atomic writes (write temp, rename) to prevent corruption.
+- DatasetManager validates paths to prevent directory traversal (`..`, `/`, `\` are rejected).
+- Input sizes are restricted: templates enforce a 500 KB input limit, file cache files are SHA-256 hashed by key.
+- Biome enforces `noExplicitAny` and `noNonNullAssertion` lint rules.

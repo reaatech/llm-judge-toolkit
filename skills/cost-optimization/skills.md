@@ -57,7 +57,7 @@ parameters:
 
 ### Cost Tracker
 ```typescript
-// src/cost/tracker.ts
+// packages/infra/src/tracker.ts
 export class CostTracker {
   private costs = new Map<string, CostBreakdown>();
   private budget: Budget | null = null;
@@ -95,7 +95,7 @@ export class CostTracker {
 
 ### Budget Manager
 ```typescript
-// src/cost/budget.ts
+// packages/infra/src/tracker.ts — budget management is handled within the cost tracker
 export class BudgetManager {
   async checkBudget(cost: number): Promise<BudgetStatus> {
     const budget = await this.getCurrentBudget();

@@ -1,7 +1,7 @@
 # Prompt Engineering Skill
 
 ## Description
-Create and optimize prompt templates for evaluation criteria (faithfulness, relevance, coherence, safety, tool-use correctness). This skill designs effective prompts with proper structure, examples, and output formatting for reliable LLM-as-judge evaluations.
+Create and optimize prompt templates for evaluation criteria (faithfulness, relevance, coherence, safety, tool-use correctness). This skill designs effective prompts with proper structure, examples, and output formatting for reliable LLM-as-judge evaluations. Uses `@reaatech/llm-judge-types` as a workspace dependency for shared types.
 
 ## Capabilities
 - Design structured prompt templates for specific criteria
@@ -82,7 +82,7 @@ parameters:
 
 ### Base Template System
 ```typescript
-// src/templates/base.ts
+// packages/templates/src/base.ts
 import { z } from 'zod';
 
 export interface TemplateContext {
@@ -171,7 +171,7 @@ export interface Example {
 
 ### Faithfulness Template
 ```typescript
-// src/templates/faithfulness.ts
+// packages/templates/src/faithfulness.ts
 import { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment, ValidationResult } from './base';
 
 export class FaithfulnessTemplate extends JudgmentTemplate {
@@ -319,7 +319,7 @@ ${response}
 
 ### Relevance Template
 ```typescript
-// src/templates/relevance.ts
+// packages/templates/src/relevance.ts
 import { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment, ValidationResult } from './base';
 
 export class RelevanceTemplate extends JudgmentTemplate {
@@ -426,7 +426,7 @@ ${response}
 
 ### Coherence Template
 ```typescript
-// src/templates/coherence.ts
+// packages/templates/src/coherence.ts
 import { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment, ValidationResult } from './base';
 
 export class CoherenceTemplate extends JudgmentTemplate {
@@ -533,7 +533,7 @@ ${response}
 
 ### Safety Template
 ```typescript
-// src/templates/safety.ts
+// packages/templates/src/safety.ts
 import { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment, ValidationResult } from './base';
 
 export class SafetyTemplate extends JudgmentTemplate {
@@ -668,7 +668,7 @@ ${response}
 
 ### Tool-Use Correctness Template
 ```typescript
-// src/templates/tool-use.ts
+// packages/templates/src/tool-use.ts
 import { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment, ValidationResult } from './base';
 
 export class ToolUseTemplate extends JudgmentTemplate {
@@ -783,47 +783,6 @@ ${response || 'N/A'}
       confidence: 0.3,
       metadata: { parseMethod: 'fallback' }
     };
-  }
-}
-```
-
-### Template Registry
-```typescript
-// src/templates/registry.ts
-import { JudgmentTemplate } from './base';
-import { FaithfulnessTemplate } from './faithfulness';
-import { RelevanceTemplate } from './relevance';
-import { CoherenceTemplate } from './coherence';
-import { SafetyTemplate } from './safety';
-import { ToolUseTemplate } from './tool-use';
-
-export class TemplateRegistry {
-  private static templates = new Map<string, JudgmentTemplate>();
-  
-  static register(template: JudgmentTemplate): void {
-    const key = `${template.name}:${template.version}`;
-    this.templates.set(key, template);
-  }
-  
-  static get(name: string, version?: string): JudgmentTemplate | undefined {
-    if (version) {
-      return this.templates.get(`${name}:${version}`);
-    }
-    
-    // Return latest version
-    const matches = Array.from(this.templates.keys())
-      .filter(key => key.startsWith(`${name}:`))
-      .sort((a, b) => b.localeCompare(a)); // Latest version first
-    
-    return matches.length > 0 ? this.templates.get(matches[0]) : undefined;
-  }
-  
-  static initializeDefaults(): void {
-    this.register(new FaithfulnessTemplate());
-    this.register(new RelevanceTemplate());
-    this.register(new CoherenceTemplate());
-    this.register(new SafetyTemplate());
-    this.register(new ToolUseTemplate());
   }
 }
 ```

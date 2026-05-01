@@ -63,7 +63,7 @@ parameters:
 
 ### Position Bias Detection
 ```typescript
-// src/bias/position.ts
+// packages/bias/src/position.ts
 export interface PositionBiasReport {
   hasBias: boolean;
   averageBias: number;
@@ -162,7 +162,7 @@ export class PositionBiasDetector {
 
 ### Length Bias Detection
 ```typescript
-// src/bias/length.ts
+// packages/bias/src/length.ts
 export interface LengthBiasReport {
   hasBias: boolean;
   correlationCoefficient: number;
@@ -238,7 +238,7 @@ export class LengthBiasDetector {
 
 ### Comprehensive Bias Report
 ```typescript
-// src/bias/report.ts
+// packages/types/src/bias.ts — report types are in the shared types package
 export interface ComprehensiveBiasReport {
   timestamp: Date;
   overallBiasScore: number;
