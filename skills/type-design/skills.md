@@ -94,7 +94,7 @@ parameters:
 
 ### Core Judgment Types
 ```typescript
-// src/types/judgment.ts
+// packages/types/src/judgment.ts — exports from @reaatech/llm-judge-types
 import { z } from 'zod';
 
 // Evaluation criteria enumeration
@@ -172,7 +172,7 @@ export function validateJudgmentSafe(data: unknown): z.SafeParseReturnType<unkno
 
 ### Configuration Types
 ```typescript
-// src/types/config.ts
+// packages/types/src/config.ts — exports from @reaatech/llm-judge-types
 import { z } from 'zod';
 
 // Provider configuration
@@ -260,7 +260,7 @@ export type ProdConfig = z.infer<typeof ProdConfigSchema>;
 
 ### Utility Types
 ```typescript
-// src/types/utils.ts
+// packages/types/src/utils.ts — exports from @reaatech/llm-judge-types
 import { z } from 'zod';
 
 // Partial type for updates
@@ -323,9 +323,9 @@ export function isConsensusJudgmentType(judgment: AnyJudgment): judgment is Cons
 
 ### API Response Types
 ```typescript
-// src/types/api.ts
+// packages/types/src/api.ts — exports from @reaatech/llm-judge-types
 import { z } from 'zod';
-import { JudgmentSchema } from './judgment';
+import { JudgmentSchema } from '@reaatech/llm-judge-types';
 
 // API error response
 export const ApiErrorSchema = z.object({

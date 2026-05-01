@@ -1,42 +1,30 @@
 # Project Setup Skill
 
 ## Description
-Initialize and configure TypeScript projects with pnpm, including build systems, linting, testing, and CI/CD infrastructure. This skill handles all the boilerplate setup needed for enterprise-grade TypeScript projects.
+Initialize and configure TypeScript monorepos with pnpm workspaces, Turbo build orchestration, Biome formatting/linting, Vitest testing, and CI/CD infrastructure. This skill handles all the boilerplate setup needed for enterprise-grade TypeScript monorepos.
 
 ## Capabilities
 - Initialize pnpm workspaces with proper configuration
-- Configure TypeScript with strict mode and path aliases
-- Set up build tools (tsup, esbuild, or rollup)
-- Configure ESLint with TypeScript support
-- Set up Prettier for code formatting
+- Configure TypeScript with strict mode
+- Set up build tools (tsup) per package
+- Configure Biome for linting and formatting
+- Set up formatting with Biome
 - Configure Vitest with coverage thresholds
-- Set up Husky pre-commit hooks with lint-staged
+- Set up Turbo for monorepo build orchestration
 - Create GitHub Actions CI/CD pipelines
 - Configure EditorConfig for consistent formatting
-- Set up conventional commits with commitlint
+- Set up Changesets for versioning and changelogs
 
 ## Invocation
 ```yaml
 skill: project-setup
 action: initialize
 parameters:
-  name: llm-judge-toolkit
+  name: "@reaatech/llm-judge-toolkit"
   packageManager: pnpm
   license: MIT
   nodeVersion: "20"
   strict: true
-```
-
-## Examples
-
-### Basic Project Initialization
-```yaml
-skill: project-setup
-action: initialize
-parameters:
-  name: my-typescript-library
-  packageManager: pnpm
-  license: MIT
 ```
 
 ### Full Enterprise Setup
@@ -44,7 +32,7 @@ parameters:
 skill: project-setup
 action: initialize
 parameters:
-  name: llm-judge-toolkit
+  name: "@reaatech/llm-judge-toolkit"
   description: "Calibrated LLM-as-judge library"
   packageManager: pnpm
   license: MIT
@@ -52,12 +40,11 @@ parameters:
   strict: true
   features:
     - typescript
-    - eslint
-    - prettier
+    - biome
     - vitest
-    - husky
+    - turbo
+    - changesets
     - github-actions
-    - conventional-commits
 ```
 
 ### Add Specific Tooling
@@ -68,18 +55,50 @@ parameters:
   tools:
     - name: vitest
       coverage: 90
-    - name: eslint
-      config: typescript
-    - name: husky
-      hooks: [pre-commit, commit-msg]
+    - name: biome
+      config: recommended
 ```
 
 ## Generated Files
 
-### package.json
+### Root package.json (monorepo)
 ```json
 {
-  "name": "llm-judge-toolkit",
+  "name": "llm-judge-monorepo",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "typecheck": "turbo run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "turbo run build && changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@changesets/cli": "^2.28.1",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
+```
+
+### Per-package package.json (e.g. packages/types/package.json)
+```json
+{
+  "name": "@reaatech/llm-judge-types",
   "version": "0.1.0",
   "private": false,
   "license": "MIT",
@@ -87,48 +106,33 @@ parameters:
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "src"],
+  "files": ["dist"],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write src/",
-    "format:check": "prettier --check src/",
-    "typecheck": "tsc --noEmit",
-    "prepare": "husky install"
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "@vitest/coverage-v8": "^1.0.0",
-    "eslint": "^8.55.0",
-    "eslint-config-prettier": "^9.1.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^15.2.0",
-    "prettier": "^3.1.0",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "tsup": "^8.0.1",
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
   }
 }
 ```
 
-### tsconfig.json
+### Root tsconfig.json (shared base for all packages)
 ```json
 {
   "compilerOptions": {
@@ -149,41 +153,44 @@ parameters:
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
-    "outDir": "dist",
-    "rootDir": "src"
+    "noUncheckedIndexedAccess": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules", "dist"]
 }
 ```
 
-### tsup.config.ts
+### Per-package tsconfig.json (e.g. packages/types/tsconfig.json)
+```json
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
+```
+
+### Per-package tsup.config.ts
 ```typescript
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['cjs', 'esm'],
+  format: ['esm'],
   dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,
   treeshake: true,
   minify: false,
-  external: ['dotenv'],
-  injectStyle: false,
 });
 ```
 
 ### vitest.config.ts
 ```typescript
 import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
 
 export default defineConfig({
   test: {
@@ -201,9 +208,6 @@ export default defineConfig({
           lines: 90,
         },
       },
-    },
-    alias: {
-      '@': resolve(__dirname, './src'),
     },
   },
 });
@@ -232,7 +236,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 9
       
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -243,20 +247,52 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
+      - name: Lint & Format
+        run: pnpm lint
+      
       - name: Type check
         run: pnpm typecheck
       
-      - name: Lint
-        run: pnpm lint
-      
-      - name: Format check
-        run: pnpm format:check
-      
       - name: Test
-        run: pnpm test:coverage
+        run: pnpm test
       
       - name: Build
         run: pnpm build
+```
+
+### pnpm-workspace.yaml
+```yaml
+packages:
+  - "packages/*"
+```
+
+### turbo.json
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "test:coverage": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
 ```
 
 ## Constraints
@@ -264,15 +300,14 @@ jobs:
 - pnpm version 8+ required
 - Internet connection needed for package installation
 - GitHub account required for CI/CD setup
-- Some features may require additional configuration for monorepos
 
 ## Best Practices
 1. Always use strict TypeScript configuration
 2. Set coverage thresholds to at least 90%
-3. Use conventional commits for changelog generation
-4. Configure pre-commit hooks to run lint and type check
-5. Use path aliases for cleaner imports
-6. Generate both CJS and ESM outputs for maximum compatibility
+3. Use Changesets for changelog generation and versioning
+4. Run Biome lint + format check in CI
+5. Use `workspace:*` protocol for inter-package dependencies
+6. Build packages in dependency order with Turbo (`"^build"` dependsOn)
 
 ## Related Skills
 - `type-design` - For creating TypeScript types after project setup

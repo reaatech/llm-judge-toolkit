@@ -61,7 +61,7 @@ parameters:
 ```typescript
 // typedoc.json
 {
-  "entryPoints": ["src/index.ts"],
+  "entryPoints": ["packages/*/src/index.ts"],
   "out": "docs/api",
   "name": "LLM Judge Toolkit",
   "includeVersion": true,
@@ -91,15 +91,16 @@ parameters:
 ## Installation
 
 ```bash
-npm install llm-judge-toolkit
+npm install @reaatech/llm-judge-engine @reaatech/llm-judge-providers
 # or
-pnpm add llm-judge-toolkit
+pnpm add @reaatech/llm-judge-engine @reaatech/llm-judge-providers
 ```
 
 ## Quick Start
 
 ```typescript
-import { JudgmentEngine, EvaluationCriteria, OpenAIProvider } from 'llm-judge-toolkit';
+import { JudgmentEngine, EvaluationCriteria } from '@reaatech/llm-judge-engine';
+import { OpenAIProvider } from '@reaatech/llm-judge-providers';
 
 // Initialize provider
 const provider = new OpenAIProvider({ 

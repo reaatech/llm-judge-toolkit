@@ -35,7 +35,7 @@ parameters:
 skill: test-generation
 action: generate-unit-tests
 parameters:
-  module: src/engine/judge.ts
+  module: packages/engine/src/judge.ts
   coverage: 90
   include:
     - happy-path
@@ -61,13 +61,12 @@ parameters:
 ```typescript
 // vitest.config.ts
 import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['packages/**/src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -80,21 +79,18 @@ export default defineConfig({
         },
       },
     },
-    alias: {
-      '@': resolve(__dirname, './src'),
-    },
   },
 });
 ```
 
 ### Unit Tests Example
 ```typescript
-// src/engine/judge.test.ts
+// packages/engine/src/judge.test.ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { JudgmentEngine } from './judge';
-import { LLMProvider, CompletionResponse } from '../providers/base';
-import { CacheManager } from '../cache/manager';
-import { FaithfulnessTemplate } from '../templates/faithfulness';
+import { LLMProvider, CompletionResponse } from '@reaatech/llm-judge-providers';
+import { CacheManager } from '@reaatech/llm-judge-cache';
+import { FaithfulnessTemplate } from '@reaatech/llm-judge-templates';
 
 // Mock provider
 class MockProvider extends LLMProvider {

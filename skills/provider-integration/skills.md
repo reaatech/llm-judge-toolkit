@@ -1,11 +1,11 @@
 # Provider Integration Skill
 
 ## Description
-Integrate LLM providers (OpenAI, Anthropic, Azure, local models) with unified abstraction layer. This skill implements provider-specific clients while maintaining a consistent interface across all providers.
+Integrate LLM providers (OpenAI, Anthropic, local models) with unified abstraction layer. This skill implements provider-specific clients while maintaining a consistent interface across all providers. Uses `@reaatech/llm-judge-types` as a workspace dependency for shared types.
 
 ## Capabilities
 - Implement unified provider abstraction layer
-- Create provider-specific clients (OpenAI, Anthropic, Azure, local)
+- Create provider-specific clients (OpenAI, Anthropic, local)
 - Handle authentication and API key management
 - Implement token counting and cost calculation
 - Support streaming and non-streaming responses
@@ -92,7 +92,7 @@ parameters:
 
 ### Base Provider Interface
 ```typescript
-// src/providers/base.ts
+// packages/providers/src/base.ts
 import { z } from 'zod';
 
 export interface Message {
@@ -198,7 +198,7 @@ export abstract class LLMProvider {
 
 ### OpenAI Provider Implementation
 ```typescript
-// src/providers/openai.ts
+// packages/providers/src/openai.ts
 import OpenAI from 'openai';
 import { LLMProvider, CompletionRequest, CompletionResponse, ModelInfo, ModelCapabilities, HealthStatus, Message, StreamChunk } from './base';
 import { TokenCounter } from '../utils/tokens';
@@ -416,7 +416,7 @@ export class OpenAIProvider extends LLMProvider {
 
 ### Anthropic Provider Implementation
 ```typescript
-// src/providers/anthropic.ts
+// packages/providers/src/anthropic.ts
 import Anthropic from '@anthropic-ai/sdk';
 import { LLMProvider, CompletionRequest, CompletionResponse, ModelInfo, ModelCapabilities, HealthStatus, Message } from './base';
 import { TokenCounter } from '../utils/tokens';
@@ -596,57 +596,6 @@ export class AnthropicProvider extends LLMProvider {
       throw new Error('Anthropic rate limit exceeded. Consider implementing retry logic.');
     }
     throw error;
-  }
-}
-```
-
-### Provider Registry
-```typescript
-// src/providers/registry.ts
-import { LLMProvider } from './base';
-import { OpenAIProvider } from './openai';
-import { AnthropicProvider } from './anthropic';
-import { AzureProvider } from './azure';
-import { LocalProvider } from './local';
-
-export class ProviderRegistry {
-  private static providers = new Map<string, LLMProvider>();
-  
-  static register(name: string, provider: LLMProvider): void {
-    this.providers.set(name, provider);
-  }
-  
-  static get(name: string): LLMProvider | undefined {
-    return this.providers.get(name);
-  }
-  
-  static list(): string[] {
-    return Array.from(this.providers.keys());
-  }
-  
-  static createProvider(name: string, config?: any): LLMProvider {
-    switch (name) {
-      case 'openai':
-        return new OpenAIProvider(config);
-      case 'anthropic':
-        return new AnthropicProvider(config);
-      case 'azure':
-        return new AzureProvider(config);
-      case 'local':
-        return new LocalProvider(config);
-      default:
-        throw new Error(`Unknown provider: ${name}`);
-    }
-  }
-  
-  static initializeDefaults(): void {
-    // Register default providers if not already registered
-    if (!this.providers.has('openai')) {
-      this.register('openai', new OpenAIProvider());
-    }
-    if (!this.providers.has('anthropic')) {
-      this.register('anthropic', new AnthropicProvider());
-    }
   }
 }
 ```

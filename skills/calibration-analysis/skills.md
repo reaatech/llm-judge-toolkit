@@ -61,7 +61,7 @@ parameters:
 
 ### Calibration Metrics
 ```typescript
-// src/calibration/metrics.ts
+// packages/calibration/src/metrics.ts
 export class CalibrationMetrics {
   static cohensKappa(judgments: number[], humanLabels: number[]): number {
     const n = judgments.length;
@@ -208,7 +208,7 @@ export class CalibrationMetrics {
 
 ### Calibration Report Generator
 ```typescript
-// src/calibration/report.ts
+// packages/calibration/src/metrics.ts
 export interface CalibrationReport {
   cohensKappa: number;
   fleissKappa?: number;

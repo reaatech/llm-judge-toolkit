@@ -63,7 +63,7 @@ parameters:
 
 ### API Key Validation
 ```typescript
-// src/security/api-keys.ts
+// packages/providers/src/factory.ts — API key handling lives in the provider factory
 export class APIKeyValidator {
   static validate(key: string): ValidationResult {
     if (!key || key.length < 32) {
@@ -99,7 +99,7 @@ export class APIKeyValidator {
 
 ### Input Sanitization
 ```typescript
-// src/security/sanitization.ts
+// packages/infra/src/sanitization.ts — input sanitization is a cross-cutting concern in the infra package
 export class InputSanitizer {
   static sanitizePrompt(prompt: string): string {
     // Remove potential prompt injection patterns
@@ -129,7 +129,7 @@ export class InputSanitizer {
 
 ### Rate Limiter
 ```typescript
-// src/security/rate-limiter.ts
+// packages/engine/src/rate-limiter.ts
 export class RateLimiter {
   private requests = new Map<string, number[]>();
   
@@ -162,7 +162,7 @@ export class RateLimiter {
 
 ### Security Middleware
 ```typescript
-// src/security/middleware.ts
+// packages/infra/src/middleware.ts — middleware is a cross-cutting concern in the infra package
 export class SecurityMiddleware {
   constructor(
     private rateLimiter: RateLimiter,
