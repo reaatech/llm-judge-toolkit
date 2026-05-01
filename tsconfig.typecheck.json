@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@reaatech/llm-judge-types": ["./packages/types/src/index.ts"],
+      "@reaatech/llm-judge-providers": ["./packages/providers/src/index.ts"],
+      "@reaatech/llm-judge-templates": ["./packages/templates/src/index.ts"],
+      "@reaatech/llm-judge-engine": ["./packages/engine/src/index.ts"],
+      "@reaatech/llm-judge-consensus": ["./packages/consensus/src/index.ts"],
+      "@reaatech/llm-judge-calibration": ["./packages/calibration/src/index.ts"],
+      "@reaatech/llm-judge-bias": ["./packages/bias/src/index.ts"],
+      "@reaatech/llm-judge-cache": ["./packages/cache/src/index.ts"],
+      "@reaatech/llm-judge-infra": ["./packages/infra/src/index.ts"],
+      "@reaatech/llm-judge-cli": ["./packages/cli/src/index.ts"]
+    }
+  }
+}

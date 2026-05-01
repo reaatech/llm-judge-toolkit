@@ -1,46 +1,49 @@
 # Dependencies
 node_modules/
-.pnp
-.pnp.js
+.pnpm-store/
 
 # Build outputs
 dist/
 build/
 *.tsbuildinfo
 
-# Testing
-coverage/
-.nyc_output/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Stray build artifacts inside src/ (tsup output belongs in dist/ only)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
 
 # Logs
 logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Editor directories and files
-.claude/
-.idea/
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
 .vscode/
+.idea/
+.claude/
 *.swp
 *.swo
-*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Test
+coverage/
+
+# Turborepo
+.turbo/
 
 # Cache
 .cache/
 *.tmp
 
-# Project files
+# Development
 DEV_PLAN.md
-
-# Lock files (optional — commit if you want reproducible builds)
-# package-lock.json
-# yarn.lock
