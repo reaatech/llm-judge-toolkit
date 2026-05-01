@@ -17,7 +17,7 @@ export function cleanAndParse(response: string): Record<string, unknown> {
 
 export function parseFallback(response: string): ParsedJudgment {
   const scoreMatch = response.match(/(?:score|rating)\D*?([01]?\.?\d+)/i);
-  const rawScore = scoreMatch ? parseFloat(scoreMatch[1]!) : 0.5;
+  const rawScore = scoreMatch ? Number.parseFloat(scoreMatch[1] ?? '') : 0.5;
   const score = Number.isNaN(rawScore) ? 0.5 : Math.max(0, Math.min(1, rawScore));
 
   return {

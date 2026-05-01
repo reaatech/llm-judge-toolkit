@@ -1,8 +1,8 @@
 import type {
-  LLMProvider,
   CompletionRequest,
   CompletionResponse,
   HealthStatus,
+  LLMProvider,
   ModelInfo,
   TokenUsage,
 } from '@reaatech/llm-judge-types';
@@ -95,6 +95,7 @@ export class OpenAIProvider implements LLMProvider {
     await this.initClient();
     const start = Date.now();
     try {
+      // biome-ignore lint/style/noNonNullAssertion: client is guaranteed initialized by initClient()
       const openai = this.client!;
 
       const response = await openai.chat.completions.create({
@@ -163,6 +164,7 @@ export class OpenAIProvider implements LLMProvider {
     try {
       await this.initClient();
       const start = Date.now();
+      // biome-ignore lint/style/noNonNullAssertion: client is guaranteed initialized by initClient()
       const openai = this.client!;
 
       await openai.chat.completions.create({

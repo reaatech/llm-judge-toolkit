@@ -1,10 +1,10 @@
-import type { Judgment } from '@reaatech/llm-judge-types';
-import type { PositionBiasReport } from '@reaatech/llm-judge-types';
 import type { JudgmentEngine } from '@reaatech/llm-judge-engine';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
+import type { Judgment } from '@reaatech/llm-judge-types';
+import type { PositionBiasReport } from '@reaatech/llm-judge-types';
 
 export class PositionBiasDetector {
-  constructor(private threshold: number = 0.1) {}
+  constructor(private threshold = 0.1) {}
 
   async detect(
     judge: JudgmentEngine,

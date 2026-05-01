@@ -13,7 +13,7 @@ export interface StyleBiasReport {
 }
 
 export class StyleBiasDetector {
-  constructor(private threshold: number = 0.1) {}
+  constructor(private threshold = 0.1) {}
 
   async detect(
     judge: JudgmentEngine,

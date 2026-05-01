@@ -1,6 +1,6 @@
-import type { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment } from './base.js';
 import { EvaluationCriteriaSchema, TemplateError } from '@reaatech/llm-judge-types';
-import { safeScore, cleanAndParse, parseFallback } from './utils.js';
+import type { JudgmentTemplate, ParsedJudgment, PromptRequest, TemplateContext } from './base.js';
+import { cleanAndParse, parseFallback, safeScore } from './utils.js';
 
 const MAX_INPUT_LENGTH = 500_000;
 
@@ -17,9 +17,12 @@ export class FaithfulnessTemplate implements JudgmentTemplate {
       throw new TemplateError('Faithfulness evaluation requires a response');
     }
 
-    const totalLength = context.context.length + (context.response?.length ?? 0) + (context.query?.length ?? 0);
+    const totalLength =
+      context.context.length + (context.response?.length ?? 0) + (context.query?.length ?? 0);
     if (totalLength > MAX_INPUT_LENGTH) {
-      throw new TemplateError(`Input too large (${totalLength} chars). Maximum allowed: ${MAX_INPUT_LENGTH}`);
+      throw new TemplateError(
+        `Input too large (${totalLength} chars). Maximum allowed: ${MAX_INPUT_LENGTH}`,
+      );
     }
 
     return {

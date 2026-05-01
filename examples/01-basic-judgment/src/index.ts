@@ -1,6 +1,6 @@
 import { JudgmentEngine } from '@reaatech/llm-judge-engine';
-import { FaithfulnessTemplate } from '@reaatech/llm-judge-templates';
 import { LocalProvider } from '@reaatech/llm-judge-providers';
+import { FaithfulnessTemplate } from '@reaatech/llm-judge-templates';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
 
 async function main() {
@@ -22,16 +22,22 @@ async function main() {
 
   const judgment = await engine.judge(context);
 
-  console.log(JSON.stringify({
-    id: judgment.id,
-    criteria: judgment.criteria,
-    score: judgment.score,
-    reasoning: judgment.reasoning,
-    confidence: judgment.confidence,
-    cost: judgment.cost,
-    provider: judgment.provider,
-    model: judgment.model,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        id: judgment.id,
+        criteria: judgment.criteria,
+        score: judgment.score,
+        reasoning: judgment.reasoning,
+        confidence: judgment.confidence,
+        cost: judgment.cost,
+        provider: judgment.provider,
+        model: judgment.model,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 main().catch((error) => {

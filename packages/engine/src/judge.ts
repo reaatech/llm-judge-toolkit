@@ -1,12 +1,16 @@
-import { randomUUID } from 'crypto';
-import type { LLMProvider, CompletionRequest } from '@reaatech/llm-judge-types';
+import { randomUUID } from 'node:crypto';
+import type { CacheManager } from '@reaatech/llm-judge-cache';
+import type {
+  JudgmentTemplate,
+  ParsedJudgment,
+  TemplateContext,
+} from '@reaatech/llm-judge-templates';
+import type { CompletionRequest, LLMProvider } from '@reaatech/llm-judge-types';
 import type { Judgment, JudgmentMetadata } from '@reaatech/llm-judge-types';
 import type { EngineConfig } from '@reaatech/llm-judge-types';
-import type { JudgmentTemplate, TemplateContext, ParsedJudgment } from '@reaatech/llm-judge-templates';
-import type { CacheManager } from '@reaatech/llm-judge-cache';
 import type { EventBus } from '@reaatech/llm-judge-types';
-import type { RateLimiter } from './rate-limiter.js';
 import { JudgeError, ProviderError } from '@reaatech/llm-judge-types';
+import type { RateLimiter } from './rate-limiter.js';
 
 export interface JudgmentEngineOptions {
   provider: LLMProvider;
@@ -141,7 +145,10 @@ export class JudgmentEngine {
         return { ...response, retries: attempt };
       } catch (error) {
         if (attempt === maxRetries) {
-          this.eventBus?.emit('judgment:error', { error: error instanceof Error ? error : new Error(String(error)), context: request });
+          this.eventBus?.emit('judgment:error', {
+            error: error instanceof Error ? error : new Error(String(error)),
+            context: request,
+          });
           throw new ProviderError(
             `All ${maxRetries + 1} attempts failed: ${error instanceof Error ? error.message : String(error)}`,
             this.provider.name,
@@ -150,11 +157,14 @@ export class JudgmentEngine {
         }
 
         if (!this.isRetryableError(error)) {
-          this.eventBus?.emit('judgment:error', { error: error instanceof Error ? error : new Error(String(error)), context: request });
+          this.eventBus?.emit('judgment:error', {
+            error: error instanceof Error ? error : new Error(String(error)),
+            context: request,
+          });
           throw error instanceof Error ? error : new Error(String(error));
         }
 
-        const delay = baseDelay * Math.pow(2, attempt);
+        const delay = baseDelay * 2 ** attempt;
         await this.sleep(delay);
       }
     }
@@ -205,7 +215,9 @@ export class JudgmentEngine {
       criteria: this.template.criteria,
       score: Number.isNaN(parsed.score) ? 0.5 : Math.max(0, Math.min(1, parsed.score)),
       reasoning: parsed.reasoning,
-      confidence: Number.isNaN(parsed.confidence) ? 0.3 : Math.max(0, Math.min(1, parsed.confidence)),
+      confidence: Number.isNaN(parsed.confidence)
+        ? 0.3
+        : Math.max(0, Math.min(1, parsed.confidence)),
       cost,
       metadata,
       timestamp: new Date(),

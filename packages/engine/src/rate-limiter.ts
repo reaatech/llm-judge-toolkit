@@ -58,7 +58,8 @@ export class RateLimiter {
 
     while (this.queue.length > 0) {
       this.refill();
-      const next = this.queue[0]!;
+      const next = this.queue[0];
+      if (!next) break;
 
       if (this.tokens >= next.tokens) {
         this.tokens -= next.tokens;

@@ -3,8 +3,7 @@ import type { ConsensusResult, ConsensusStrategy } from '@reaatech/llm-judge-typ
 
 function computeAgreement(scores: number[]): number {
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const variance =
-    scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+  const variance = scores.reduce((sum, score) => sum + (score - mean) ** 2, 0) / scores.length;
   return 1 - Math.min(1, Math.sqrt(variance) * 2);
 }
 
@@ -24,7 +23,7 @@ export class MajorityVoting implements ConsensusStrategy {
       throw new Error('Total confidence weight is zero; cannot compute weighted average');
     }
 
-    const weightedSum = scores.reduce((sum, score, i) => sum + score * weights[i]!, 0);
+    const weightedSum = scores.reduce((sum, score, i) => sum + score * (weights[i] ?? 0), 0);
     const finalScore = Math.max(0, Math.min(1, weightedSum / totalWeight));
 
     const agreement = computeAgreement(scores);
@@ -42,7 +41,7 @@ export class MajorityVoting implements ConsensusStrategy {
 export class CheapFirstTiebreaker implements ConsensusStrategy {
   readonly name = 'cheap-first-tiebreaker';
 
-  constructor(private cheapCount: number = 2) {
+  constructor(private cheapCount = 2) {
     if (cheapCount < 1) {
       throw new Error('cheapCount must be at least 1');
     }
@@ -62,8 +61,11 @@ export class CheapFirstTiebreaker implements ConsensusStrategy {
       );
     }
 
-    const j1 = cheapJudgments[0]!;
-    const j2 = cheapJudgments[1]!;
+    const j1 = cheapJudgments[0];
+    const j2 = cheapJudgments[1];
+    if (!j1 || !j2) {
+      throw new Error('Cheap judgments are missing despite length check');
+    }
 
     const agreement = 1 - Math.abs(j1.score - j2.score);
     const agreementThreshold = 0.8;
@@ -82,8 +84,7 @@ export class CheapFirstTiebreaker implements ConsensusStrategy {
     const scores = allJudgments.map((j) => j.score);
     const finalScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
-    const allAgreement =
-      tiebreakers.length > 0 ? computeAgreement(scores) : agreement;
+    const allAgreement = tiebreakers.length > 0 ? computeAgreement(scores) : agreement;
 
     return {
       finalScore: Math.max(0, Math.min(1, finalScore)),
@@ -121,7 +122,7 @@ export class WeightedVoting implements ConsensusStrategy {
     }
 
     const scores = judgments.map((j) => j.score);
-    const weightedSum = scores.reduce((sum, score, i) => sum + score * this.weights[i]!, 0);
+    const weightedSum = scores.reduce((sum, score, i) => sum + score * (this.weights[i] ?? 0), 0);
     const finalScore = Math.max(0, Math.min(1, weightedSum / totalWeight));
 
     const agreement = computeAgreement(scores);

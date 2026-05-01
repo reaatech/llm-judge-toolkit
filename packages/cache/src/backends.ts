@@ -1,6 +1,6 @@
-import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { CacheBackend, CacheItem } from '@reaatech/llm-judge-types';
 
 export class InMemoryCache implements CacheBackend {
@@ -26,7 +26,7 @@ export class InMemoryCache implements CacheBackend {
   async set(key: string, item: CacheItem): Promise<void> {
     if (this.store.size >= this.maxSize && !this.store.has(key)) {
       let oldestKey = '';
-      let oldestTime = Infinity;
+      let oldestTime = Number.POSITIVE_INFINITY;
       for (const [k, v] of this.store) {
         const t = v.cachedAt.getTime();
         if (t < oldestTime) {
@@ -60,7 +60,7 @@ export class InMemoryCache implements CacheBackend {
 export class FileCache implements CacheBackend {
   private dir: string;
 
-  constructor(dir: string = '.cache/llm-judge') {
+  constructor(dir = '.cache/llm-judge') {
     this.dir = dir;
   }
 
@@ -124,12 +124,10 @@ export class FileCache implements CacheBackend {
       const results = await Promise.allSettled(
         files.map((f: string) => fs.unlink(join(this.dir, f))),
       );
-      const failed = results.filter(
-        (r): r is PromiseRejectedResult => r.status === 'rejected',
-      );
+      const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       if (failed.length > 0) {
         throw new Error(
-          `Failed to clear ${failed.length}/${files.length} cache files: ${failed[0]!.reason}`,
+          `Failed to clear ${failed.length}/${files.length} cache files: ${failed[0]?.reason}`,
         );
       }
     } catch (error) {

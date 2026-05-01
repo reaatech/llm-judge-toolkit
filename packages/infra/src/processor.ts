@@ -1,6 +1,6 @@
-import type { Judgment } from '@reaatech/llm-judge-types';
 import type { JudgmentEngine } from '@reaatech/llm-judge-engine';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
+import type { Judgment } from '@reaatech/llm-judge-types';
 
 export interface BatchItem {
   id: string;

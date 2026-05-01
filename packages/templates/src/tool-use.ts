@@ -1,6 +1,6 @@
-import type { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment } from './base.js';
 import { EvaluationCriteriaSchema, TemplateError } from '@reaatech/llm-judge-types';
-import { safeScore, cleanAndParse, parseFallback } from './utils.js';
+import type { JudgmentTemplate, ParsedJudgment, PromptRequest, TemplateContext } from './base.js';
+import { cleanAndParse, parseFallback, safeScore } from './utils.js';
 
 const MAX_INPUT_LENGTH = 500_000;
 
@@ -21,7 +21,9 @@ export class ToolUseTemplate implements JudgmentTemplate {
     const toolOutputsJson = context.toolOutputs ? JSON.stringify(context.toolOutputs) : '';
     const totalLength = context.query.length + toolCallsJson.length + toolOutputsJson.length;
     if (totalLength > MAX_INPUT_LENGTH) {
-      throw new TemplateError(`Input too large (${totalLength} chars). Maximum allowed: ${MAX_INPUT_LENGTH}`);
+      throw new TemplateError(
+        `Input too large (${totalLength} chars). Maximum allowed: ${MAX_INPUT_LENGTH}`,
+      );
     }
 
     return {

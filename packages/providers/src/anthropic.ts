@@ -1,8 +1,8 @@
 import type {
-  LLMProvider,
   CompletionRequest,
   CompletionResponse,
   HealthStatus,
+  LLMProvider,
   ModelInfo,
   TokenUsage,
 } from '@reaatech/llm-judge-types';
@@ -99,6 +99,7 @@ export class AnthropicProvider implements LLMProvider {
     await this.initClient();
     const start = Date.now();
     try {
+      // biome-ignore lint/style/noNonNullAssertion: client is guaranteed initialized by initClient()
       const anthropic = this.client!;
 
       const systemMessage = request.messages.find((m) => m.role === 'system');
@@ -129,8 +130,7 @@ export class AnthropicProvider implements LLMProvider {
       const usage: TokenUsage = {
         promptTokens: response.usage?.input_tokens ?? 0,
         completionTokens: response.usage?.output_tokens ?? 0,
-        totalTokens:
-          (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0),
+        totalTokens: (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0),
         model: response.model,
       };
 
@@ -190,6 +190,7 @@ export class AnthropicProvider implements LLMProvider {
     try {
       await this.initClient();
       const start = Date.now();
+      // biome-ignore lint/style/noNonNullAssertion: client is guaranteed initialized by initClient()
       const anthropic = this.client!;
 
       await anthropic.messages.create({

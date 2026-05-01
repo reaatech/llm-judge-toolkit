@@ -1,8 +1,8 @@
-import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { z } from 'zod';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { EvaluationCriteria } from '@reaatech/llm-judge-types';
+import { z } from 'zod';
 
 const CalibrationExampleSchema = z.object({
   id: z.string().min(1),

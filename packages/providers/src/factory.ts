@@ -1,8 +1,8 @@
-import { OpenAIProvider } from './openai.js';
-import { AnthropicProvider } from './anthropic.js';
-import { LocalProvider } from './local.js';
 import type { LLMProvider } from '@reaatech/llm-judge-types';
 import { ProviderError } from '@reaatech/llm-judge-types';
+import { AnthropicProvider } from './anthropic.js';
+import { LocalProvider } from './local.js';
+import { OpenAIProvider } from './openai.js';
 
 export interface ProviderFactoryOptions {
   name: 'openai' | 'anthropic' | 'local';
@@ -13,6 +13,7 @@ export interface ProviderFactoryOptions {
 
 const VALID_NAMES = new Set(['openai', 'anthropic', 'local']);
 
+// biome-ignore lint/complexity/noStaticOnlyClass: factory class is intentional public API
 export class ProviderFactory {
   static create(options: ProviderFactoryOptions): LLMProvider {
     switch (options.name) {
@@ -76,7 +77,10 @@ export class ProviderFactory {
 
     return ProviderFactory.create({
       name,
-      apiKey: process.env.LLM_JUDGE_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY,
+      apiKey:
+        process.env.LLM_JUDGE_API_KEY ||
+        process.env.OPENAI_API_KEY ||
+        process.env.ANTHROPIC_API_KEY,
       baseURL: process.env.LLM_JUDGE_BASE_URL,
       timeout,
     });

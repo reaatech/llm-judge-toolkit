@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'fs';
-import { createHash } from 'crypto';
-import { OpenAIProvider, AnthropicProvider, LocalProvider } from '@reaatech/llm-judge-providers';
+import { createHash } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { CacheManager } from '@reaatech/llm-judge-cache';
+import { CalibrationMetrics } from '@reaatech/llm-judge-calibration';
+import { JudgmentEngine } from '@reaatech/llm-judge-engine';
+import { BatchProcessor } from '@reaatech/llm-judge-infra';
+import { AnthropicProvider, LocalProvider, OpenAIProvider } from '@reaatech/llm-judge-providers';
 import {
+  CoherenceTemplate,
   FaithfulnessTemplate,
   RelevanceTemplate,
-  CoherenceTemplate,
   SafetyTemplate,
   ToolUseTemplate,
 } from '@reaatech/llm-judge-templates';
-import { JudgmentEngine } from '@reaatech/llm-judge-engine';
-import { BatchProcessor } from '@reaatech/llm-judge-infra';
-import { CalibrationMetrics } from '@reaatech/llm-judge-calibration';
-import { CacheManager } from '@reaatech/llm-judge-cache';
 import type { LLMProvider } from '@reaatech/llm-judge-types';
 import type { Judgment } from '@reaatech/llm-judge-types';
 
@@ -57,7 +57,8 @@ Input JSONL format for calibrate:
 export function parseArgs(argv: string[]): Record<string, string | boolean> {
   const args: Record<string, string | boolean> = {};
   for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!;
+    const arg = argv[i];
+    if (!arg) continue;
 
     if (arg === '-h' || arg === '--help') {
       args.help = true;
@@ -92,7 +93,7 @@ export function parseArgs(argv: string[]): Record<string, string | boolean> {
         b: 'base-url',
         n: 'concurrency',
       };
-      const key = shortMap[arg[1]!];
+      const key = shortMap[arg[1] ?? ''];
       if (key) {
         if (key === 'help') {
           args[key] = true;
@@ -116,13 +117,18 @@ export function createProvider(args: Record<string, string | boolean>): LLMProvi
   switch (providerName) {
     case 'openai': {
       const key = process.env.OPENAI_API_KEY || process.env.LLM_JUDGE_API_KEY || '';
-      if (!key) throw new Error('OpenAI API key required. Set OPENAI_API_KEY or LLM_JUDGE_API_KEY environment variable.');
+      if (!key)
+        throw new Error(
+          'OpenAI API key required. Set OPENAI_API_KEY or LLM_JUDGE_API_KEY environment variable.',
+        );
       return new OpenAIProvider({ apiKey: key, baseURL });
     }
     case 'anthropic': {
       const key = process.env.ANTHROPIC_API_KEY || process.env.LLM_JUDGE_API_KEY || '';
       if (!key)
-        throw new Error('Anthropic API key required. Set ANTHROPIC_API_KEY or LLM_JUDGE_API_KEY environment variable.');
+        throw new Error(
+          'Anthropic API key required. Set ANTHROPIC_API_KEY or LLM_JUDGE_API_KEY environment variable.',
+        );
       return new AnthropicProvider({ apiKey: key, baseURL });
     }
     case 'local':
@@ -150,10 +156,13 @@ export function createTemplate(criteria: string) {
 }
 
 export function readJsonlFile(path: string): unknown[] {
-  const lines = readFileSync(path, 'utf-8').split('\n').filter((l) => l.trim());
+  const lines = readFileSync(path, 'utf-8')
+    .split('\n')
+    .filter((l) => l.trim());
   const results: unknown[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
+    const line = lines[i];
+    if (!line) continue;
     try {
       results.push(JSON.parse(line));
     } catch {
@@ -177,16 +186,14 @@ async function evaluateCommand(args: Record<string, string | boolean>) {
     config: { model: String(args.model ?? 'gpt-4o-mini') },
   });
 
-  const concurrency = parseInt(String(args.concurrency ?? '3'), 10);
+  const concurrency = Number.parseInt(String(args.concurrency ?? '3'), 10);
   const processor = new BatchProcessor({ engine, concurrency });
 
   const raw = readJsonlFile(String(args.input));
   const items = raw.map((row: unknown) => {
     const r = row as Record<string, unknown>;
     return {
-      id: String(
-        r.id ?? createHash('sha256').update(JSON.stringify(r)).digest('hex').slice(0, 16),
-      ),
+      id: String(r.id ?? createHash('sha256').update(JSON.stringify(r)).digest('hex').slice(0, 16)),
       context: {
         query: r.query ? String(r.query) : undefined,
         response: r.response ? String(r.response) : undefined,
@@ -215,7 +222,7 @@ async function evaluateCommand(args: Record<string, string | boolean>) {
   const failedCount = results.filter((r) => r.error !== null).length;
 
   if (args.output) {
-    writeFileSync(String(args.output), outputLines.join('\n') + '\n', 'utf-8');
+    writeFileSync(String(args.output), `${outputLines.join('\n')}\n`, 'utf-8');
     console.error(`Wrote ${results.length} results to ${args.output}`);
   } else {
     for (const line of outputLines) {
@@ -295,9 +302,7 @@ async function main() {
     process.exit(0);
   }
 
-  const command = process.argv[2]
-    ?.replace(/^-+/, '')
-    .toLowerCase();
+  const command = process.argv[2]?.replace(/^-+/, '').toLowerCase();
 
   let aborted = false;
   process.on('SIGINT', () => {

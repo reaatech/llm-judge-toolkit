@@ -1,8 +1,9 @@
 import type { Judgment } from '@reaatech/llm-judge-types';
-import type { ConfusionMatrix, CalibrationReport } from '@reaatech/llm-judge-types';
+import type { CalibrationReport, ConfusionMatrix } from '@reaatech/llm-judge-types';
 
 const discretize = (score: number) => Math.min(2, Math.floor(score * 3));
 
+// biome-ignore lint/complexity/noStaticOnlyClass: static utility class is intentional public API
 export class CalibrationMetrics {
   static cohensKappa(judgments: Judgment[], humanLabels: number[]): number {
     const n = judgments.length;
@@ -13,8 +14,8 @@ export class CalibrationMetrics {
     const humanDist = new Map<number, number>();
 
     for (let i = 0; i < n; i++) {
-      const judgment = judgments[i]!;
-      const label = humanLabels[i]!;
+      const judgment = judgments[i];
+      const label = humanLabels[i];
       const jCat = discretize(judgment.score);
       const hCat = discretize(label);
 
@@ -46,17 +47,19 @@ export class CalibrationMetrics {
 
     const categorize = (score: number) => {
       for (let i = 0; i < thresholds.length; i++) {
-        if (score <= thresholds[i]!) return i;
+        if (score <= thresholds[i]) return i;
       }
       return thresholds.length;
     };
 
     for (let i = 0; i < judgments.length; i++) {
-      const judgment = judgments[i]!;
-      const label = humanLabels[i]!;
+      const judgment = judgments[i];
+      const label = humanLabels[i];
       const pred = categorize(judgment.score);
       const actual = categorize(label);
-      matrix[pred]![actual]!++;
+      const row = matrix[pred];
+      const col = row?.[actual];
+      if (col !== undefined && row) row[actual] = col + 1;
     }
 
     return { matrix, categories, thresholds };
@@ -67,9 +70,9 @@ export class CalibrationMetrics {
     let total = 0;
 
     for (let i = 0; i < confusionMatrix.categories; i++) {
-      const row = confusionMatrix.matrix[i]!;
+      const row = confusionMatrix.matrix[i];
       for (let j = 0; j < confusionMatrix.categories; j++) {
-        const val = row[j]!;
+        const val = row[j];
         if (i === j) correct += val;
         total += val;
       }
@@ -80,7 +83,7 @@ export class CalibrationMetrics {
 
   static precisionRecallF1(
     confusionMatrix: ConfusionMatrix,
-    positiveClass: number = 2,
+    positiveClass = 2,
   ): { precision: number; recall: number; f1Score: number } {
     const cm = confusionMatrix;
     const numCats = cm.categories;
@@ -92,10 +95,10 @@ export class CalibrationMetrics {
     const row = cm.matrix[positiveClass];
     if (!row) return { precision: 0, recall: 0, f1Score: 0 };
 
-    const tp = row[positiveClass]!;
+    const tp = row[positiveClass] ?? 0;
     const fp = row.reduce((a, b, j) => (j === positiveClass ? a : a + b), 0);
     const fn = cm.matrix.reduce(
-      (a, r, i) => (i === positiveClass ? a : a + r[positiveClass]!),
+      (a, r, i) => (i === positiveClass ? a : a + (r[positiveClass] ?? 0)),
       0,
     );
 

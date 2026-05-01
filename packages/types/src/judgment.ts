@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { EvaluationCriteriaSchema } from './criteria.js';
 import { CostBreakdownSchema } from './cost.js';
+import { EvaluationCriteriaSchema } from './criteria.js';
 
 export const JudgmentMetadataSchema = z.object({
   cached: z.boolean().optional(),

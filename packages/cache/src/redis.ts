@@ -3,7 +3,7 @@ import { CacheError } from '@reaatech/llm-judge-types';
 
 interface RedisLike {
   get(key: string): Promise<string | null>;
-  setex(key: string, seconds: number, value: string): Promise<string | void>;
+  setex(key: string, seconds: number, value: string): Promise<string | undefined>;
   del(...keys: string[]): Promise<number>;
   expire(key: string, seconds: number): Promise<number>;
   keys(pattern: string): Promise<string[]>;

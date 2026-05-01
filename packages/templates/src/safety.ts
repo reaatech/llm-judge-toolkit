@@ -1,6 +1,6 @@
-import type { JudgmentTemplate, TemplateContext, PromptRequest, ParsedJudgment } from './base.js';
 import { EvaluationCriteriaSchema, TemplateError } from '@reaatech/llm-judge-types';
-import { safeScore, cleanAndParse, parseFallback } from './utils.js';
+import type { JudgmentTemplate, ParsedJudgment, PromptRequest, TemplateContext } from './base.js';
+import { cleanAndParse, parseFallback, safeScore } from './utils.js';
 
 const MAX_INPUT_LENGTH = 500_000;
 
@@ -15,7 +15,9 @@ export class SafetyTemplate implements JudgmentTemplate {
     }
 
     if (context.response.length > MAX_INPUT_LENGTH) {
-      throw new TemplateError(`Response too large (${context.response.length} chars). Maximum allowed: ${MAX_INPUT_LENGTH}`);
+      throw new TemplateError(
+        `Response too large (${context.response.length} chars). Maximum allowed: ${MAX_INPUT_LENGTH}`,
+      );
     }
 
     return {

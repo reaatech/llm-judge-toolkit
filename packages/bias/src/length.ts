@@ -1,6 +1,6 @@
-import type { Judgment } from '@reaatech/llm-judge-types';
 import type { JudgmentEngine } from '@reaatech/llm-judge-engine';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
+import type { Judgment } from '@reaatech/llm-judge-types';
 
 export interface LengthBiasReport {
   hasBias: boolean;
@@ -13,7 +13,7 @@ export interface LengthBiasReport {
 }
 
 export class LengthBiasDetector {
-  constructor(private threshold: number = 0.3) {}
+  constructor(private threshold = 0.3) {}
 
   async detect(
     judge: JudgmentEngine,
@@ -44,7 +44,7 @@ export class LengthBiasDetector {
         : 'No significant length bias detected.',
       details: responses.map((r, i) => ({
         responseLength: r.content.length,
-        score: judgments[i]!.score,
+        score: judgments[i]?.score,
       })),
     };
   }
@@ -56,7 +56,7 @@ function pearsonCorrelation(x: number[], y: number[]): number {
 
   const sumX = x.reduce((a, b) => a + b, 0);
   const sumY = y.reduce((a, b) => a + b, 0);
-  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i]!, 0);
+  const sumXY = x.reduce((sum, xi, i) => sum + xi * (y[i] ?? 0), 0);
   const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
   const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
 

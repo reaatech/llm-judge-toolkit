@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { ProviderNameSchema } from './provider.js';
 import { CacheConfigSchema } from './cache.js';
 import { EvaluationCriteriaSchema } from './criteria.js';
+import { ProviderNameSchema } from './provider.js';
 
 export const ProviderConfigSchema = z.object({
   name: ProviderNameSchema,

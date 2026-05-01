@@ -1,8 +1,8 @@
 import type {
-  LLMProvider,
   CompletionRequest,
   CompletionResponse,
   HealthStatus,
+  LLMProvider,
   ModelInfo,
   TokenUsage,
 } from '@reaatech/llm-judge-types';
@@ -32,7 +32,7 @@ export class LocalProvider implements LLMProvider {
   toString(): string {
     return this.apiKey
       ? `LocalProvider(maskedKey=${this.apiKey.slice(0, 7)}...)`
-      : 'LocalProvider(baseURL=' + this.baseURL + ')';
+      : `LocalProvider(baseURL=${this.baseURL})`;
   }
 
   toJSON(): object {

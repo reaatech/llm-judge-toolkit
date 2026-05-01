@@ -1,7 +1,7 @@
+import type { PositionBiasReport } from './bias.js';
+import type { CalibrationReport } from './calibration.js';
 import type { Judgment } from './judgment.js';
 import type { ConsensusJudgment } from './judgment.js';
-import type { CalibrationReport } from './calibration.js';
-import type { PositionBiasReport } from './bias.js';
 
 export type JudgmentEvent =
   | { type: 'judgment:completed'; judgment: Judgment }
