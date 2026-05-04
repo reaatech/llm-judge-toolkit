@@ -34,7 +34,7 @@
     "@reaatech/llm-judge-types": "workspace:*"
   },
   "peerDependencies": {
-    "openai": "^4.0.0",
+    "openai": "^6.35.0",
     "@anthropic-ai/sdk": "^0.40.0"
   },
   "peerDependenciesMeta": {
@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "openai": "^4.0.0",
+    "openai": "^6.35.0",
     "@anthropic-ai/sdk": "^0.40.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
