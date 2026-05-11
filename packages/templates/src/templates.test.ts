@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   CoherenceTemplate,
+  cleanAndParse,
   FaithfulnessTemplate,
+  parseFallback,
   RelevanceTemplate,
   SafetyTemplate,
-  ToolUseTemplate,
-  cleanAndParse,
-  parseFallback,
   safeScore,
+  ToolUseTemplate,
 } from './index.js';
 
 describe('@reaatech/llm-judge-templates', () => {

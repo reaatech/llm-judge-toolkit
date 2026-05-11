@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   BatchProcessor,
   CostTracker,
-  MetricsCollector,
   logError,
-  logJudgment,
   logger,
+  logJudgment,
+  MetricsCollector,
 } from './index.js';
 
 describe('@reaatech/llm-judge-infra', () => {

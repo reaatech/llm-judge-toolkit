@@ -1,5 +1,4 @@
-import type { Judgment } from '@reaatech/llm-judge-types';
-import type { CalibrationReport, ConfusionMatrix } from '@reaatech/llm-judge-types';
+import type { CalibrationReport, ConfusionMatrix, Judgment } from '@reaatech/llm-judge-types';
 
 const discretize = (score: number) => Math.min(2, Math.floor(score * 3));
 

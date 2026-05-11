@@ -10,7 +10,9 @@
     "directory": "packages/infra"
   },
   "homepage": "https://github.com/reaatech/llm-judge-toolkit/tree/main/packages/infra#readme",
-  "bugs": { "url": "https://github.com/reaatech/llm-judge-toolkit/issues" },
+  "bugs": {
+    "url": "https://github.com/reaatech/llm-judge-toolkit/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,8 +24,12 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",

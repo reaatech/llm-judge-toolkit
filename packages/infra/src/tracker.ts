@@ -1,6 +1,4 @@
-import type { Judgment } from '@reaatech/llm-judge-types';
-import type { Budget } from '@reaatech/llm-judge-types';
-import type { EventBus } from '@reaatech/llm-judge-types';
+import type { Budget, EventBus, Judgment } from '@reaatech/llm-judge-types';
 import { BudgetExceededError } from '@reaatech/llm-judge-types';
 
 function isWithinPeriod(timestamp: Date, period: string): boolean {

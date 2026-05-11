@@ -13,8 +13,7 @@ import {
   SafetyTemplate,
   ToolUseTemplate,
 } from '@reaatech/llm-judge-templates';
-import type { LLMProvider } from '@reaatech/llm-judge-types';
-import type { Judgment } from '@reaatech/llm-judge-types';
+import type { Judgment, LLMProvider } from '@reaatech/llm-judge-types';
 
 const usage = `
 Usage: llm-judge <command> [options]
