@@ -5,7 +5,7 @@
   "description": "Calibrated LLM-as-judge library. Multi-judge consensus, position bias detection, calibration against human labels, cost tracking, and caching.",
   "type": "module",
   "scripts": {
-    "build": "turbo run build",
+    "build": "pnpm install && turbo run build",
     "test": "turbo run test",
     "test:watch": "vitest",
     "test:coverage": "turbo run test:coverage",
