@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
-import type { CacheBackend, CacheConfig, CacheItem } from '@reaatech/llm-judge-types';
-import type { Judgment } from '@reaatech/llm-judge-types';
+import type { CacheBackend, CacheConfig, CacheItem, Judgment } from '@reaatech/llm-judge-types';
 import { CacheError } from '@reaatech/llm-judge-types';
 import { InMemoryCache } from './backends.js';
 

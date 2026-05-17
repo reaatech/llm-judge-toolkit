@@ -1,12 +1,12 @@
 import type {
   CompletionRequest,
   CompletionResponse,
+  CostBreakdown,
   HealthStatus,
   LLMProvider,
   ModelInfo,
   TokenUsage,
 } from '@reaatech/llm-judge-types';
-import type { CostBreakdown } from '@reaatech/llm-judge-types';
 import { ProviderError } from '@reaatech/llm-judge-types';
 
 interface LocalOptions {

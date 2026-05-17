@@ -1,5 +1,4 @@
-import type { Judgment } from '@reaatech/llm-judge-types';
-import type { ConsensusResult, ConsensusStrategy } from '@reaatech/llm-judge-types';
+import type { ConsensusResult, ConsensusStrategy, Judgment } from '@reaatech/llm-judge-types';
 
 function computeAgreement(scores: number[]): number {
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
