@@ -34,7 +34,7 @@
     "@reaatech/llm-judge-types": "workspace:*",
     "@reaatech/llm-judge-engine": "workspace:*",
     "@reaatech/llm-judge-templates": "workspace:*",
-    "pino": "^9.6.0"
+    "pino": "^10.3.1"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
