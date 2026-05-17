@@ -24,8 +24,8 @@ importers:
         specifier: ^2.9.12
         version: 2.9.12
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -52,8 +52,8 @@ importers:
         specifier: ^4.19.3
         version: 4.21.0
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/bias:
     dependencies:
@@ -69,10 +69,10 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -91,10 +91,10 @@ importers:
         version: 25.6.0
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -119,10 +119,10 @@ importers:
         version: 25.6.0
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -156,10 +156,10 @@ importers:
         version: 25.6.0
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -172,10 +172,10 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -197,10 +197,10 @@ importers:
         version: 25.6.0
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -225,10 +225,10 @@ importers:
         version: 25.6.0
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -250,10 +250,10 @@ importers:
         version: 6.37.0(zod@4.4.3)
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -266,10 +266,10 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -282,10 +282,10 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.4.0
-        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3)
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/node@25.6.0)(tsx@4.21.0)
@@ -1638,8 +1638,8 @@ packages:
     resolution: {integrity: sha512-lCPgus1NuTiBdaITWqzSH/Ff6HVL8HHGBtOXHg1dHRfcshN79XkygSdh0M6g8b0td91ILLG5MTkLOkp5UvyPJw==}
     hasBin: true
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -2975,7 +2975,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  tsup@8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3):
+  tsup@8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@6.0.3):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
       cac: 6.7.14
@@ -2996,7 +2996,7 @@ snapshots:
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.5.10
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - jiti
       - supports-color
@@ -3019,7 +3019,7 @@ snapshots:
       '@turbo/windows-64': 2.9.12
       '@turbo/windows-arm64': 2.9.12
 
-  typescript@5.9.3: {}
+  typescript@6.0.3: {}
 
   ufo@1.6.3: {}
 
