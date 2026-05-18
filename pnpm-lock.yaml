@@ -246,8 +246,8 @@ importers:
         specifier: ^25.6.0
         version: 25.6.0
       openai:
-        specifier: ^6.37.0
-        version: 6.37.0(zod@4.4.3)
+        specifier: ^6.38.0
+        version: 6.38.0(zod@4.4.3)
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
@@ -1293,8 +1293,8 @@ packages:
     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
     engines: {node: '>=14.0.0'}
 
-  openai@6.37.0:
-    resolution: {integrity: sha512-0H5dEGFmmLv6KSd0W1w2nyL8WsLkX6yoLeQpU+dZAOuGcany5qkYQMmj35ZrKgb6yiyYqpUzFOpR8mZQkgqeEQ==}
+  openai@6.38.0:
+    resolution: {integrity: sha512-AoMplt2UalrpgUDMh3L09QWjNRlgJPipclQvA6sYAaeF6nHNBMgmikAZGmcYLn8on4d9sQY9Q8bOLfrBS7Lc8g==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0
@@ -2690,7 +2690,7 @@ snapshots:
 
   on-exit-leak-free@2.1.2: {}
 
-  openai@6.37.0(zod@4.4.3):
+  openai@6.38.0(zod@4.4.3):
     optionalDependencies:
       zod: 4.4.3
 
