@@ -35,7 +35,7 @@
   },
   "peerDependencies": {
     "openai": "^6.37.0",
-    "@anthropic-ai/sdk": "^0.95.2"
+    "@anthropic-ai/sdk": "^0.96.0"
   },
   "peerDependenciesMeta": {
     "openai": { "optional": true },
@@ -44,7 +44,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "openai": "^6.37.0",
-    "@anthropic-ai/sdk": "^0.95.2",
+    "@anthropic-ai/sdk": "^0.96.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
