@@ -49,11 +49,6 @@
     "url": "https://github.com/reaatech/llm-judge-toolkit/issues"
   },
   "homepage": "https://github.com/reaatech/llm-judge-toolkit#readme",
-  "pnpm": {
-    "overrides": {
-      "brace-expansion": ">=5.0.6"
-    }
-  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@changesets/changelog-github": "^0.7.0",
