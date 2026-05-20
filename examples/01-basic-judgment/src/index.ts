@@ -1,7 +1,7 @@
 import { JudgmentEngine } from '@reaatech/llm-judge-engine';
 import { LocalProvider } from '@reaatech/llm-judge-providers';
-import { FaithfulnessTemplate } from '@reaatech/llm-judge-templates';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
+import { FaithfulnessTemplate } from '@reaatech/llm-judge-templates';
 
 async function main() {
   const provider = new LocalProvider();

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { ConsensusMethodSchema, JudgmentSchema } from './judgment.js';
 import type { Judgment } from './judgment.js';
+import { ConsensusMethodSchema, JudgmentSchema } from './judgment.js';
 
 export const ConsensusResultSchema = z.object({
   finalScore: z.number().min(0).max(1),

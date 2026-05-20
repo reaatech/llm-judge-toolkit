@@ -1,1 +1,1 @@
-export { MajorityVoting, CheapFirstTiebreaker, WeightedVoting } from './strategies.js';
+export { CheapFirstTiebreaker, MajorityVoting, WeightedVoting } from './strategies.js';

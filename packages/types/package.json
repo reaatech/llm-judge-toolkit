@@ -10,7 +10,9 @@
     "directory": "packages/types"
   },
   "homepage": "https://github.com/reaatech/llm-judge-toolkit/tree/main/packages/types#readme",
-  "bugs": { "url": "https://github.com/reaatech/llm-judge-toolkit/issues" },
+  "bugs": {
+    "url": "https://github.com/reaatech/llm-judge-toolkit/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,15 +24,21 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist"
   },
-  "dependencies": { "zod": "^4.4.3" },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
   "devDependencies": {
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",

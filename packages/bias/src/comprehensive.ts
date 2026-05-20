@@ -1,11 +1,11 @@
 import type { JudgmentEngine } from '@reaatech/llm-judge-engine';
 import type { TemplateContext } from '@reaatech/llm-judge-templates';
 import type { PositionBiasReport } from '@reaatech/llm-judge-types';
-import { LengthBiasDetector } from './length.js';
 import type { LengthBiasReport } from './length.js';
+import { LengthBiasDetector } from './length.js';
 import { PositionBiasDetector } from './position.js';
-import { StyleBiasDetector } from './style.js';
 import type { StyleBiasReport } from './style.js';
+import { StyleBiasDetector } from './style.js';
 
 export interface ComprehensiveBiasReport {
   hasBias: boolean;

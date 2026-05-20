@@ -10,7 +10,9 @@
     "directory": "packages/providers"
   },
   "homepage": "https://github.com/reaatech/llm-judge-toolkit/tree/main/packages/providers#readme",
-  "bugs": { "url": "https://github.com/reaatech/llm-judge-toolkit/issues" },
+  "bugs": {
+    "url": "https://github.com/reaatech/llm-judge-toolkit/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,8 +24,12 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
@@ -38,8 +44,12 @@
     "@anthropic-ai/sdk": "^0.95.2"
   },
   "peerDependenciesMeta": {
-    "openai": { "optional": true },
-    "@anthropic-ai/sdk": { "optional": true }
+    "openai": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
