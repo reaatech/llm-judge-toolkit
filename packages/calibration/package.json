@@ -1,6 +1,6 @@
 {
   "name": "@reaatech/llm-judge-calibration",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Calibration metrics, runner, datasets, and drift detection for LLM Judge Toolkit",
   "license": "MIT",
   "author": "Rick Somers <rick@reaatech.com> (https://reaatech.com)",

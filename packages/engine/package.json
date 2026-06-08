@@ -1,6 +1,6 @@
 {
   "name": "@reaatech/llm-judge-engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Judgment engine with retry, caching, event bus, and rate limiting for LLM Judge Toolkit",
   "license": "MIT",
   "author": "Rick Somers <rick@reaatech.com> (https://reaatech.com)",
