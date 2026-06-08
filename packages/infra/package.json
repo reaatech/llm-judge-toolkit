@@ -43,7 +43,7 @@
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "tsup": "^8.4.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.0"
