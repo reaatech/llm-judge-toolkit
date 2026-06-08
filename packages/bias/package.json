@@ -1,6 +1,6 @@
 {
   "name": "@reaatech/llm-judge-bias",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bias detection (position, length, style) for LLM Judge Toolkit",
   "license": "MIT",
   "author": "Rick Somers <rick@reaatech.com> (https://reaatech.com)",

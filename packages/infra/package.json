@@ -1,6 +1,6 @@
 {
   "name": "@reaatech/llm-judge-infra",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cost tracking, monitoring, and batch processing for LLM Judge Toolkit",
   "license": "MIT",
   "author": "Rick Somers <rick@reaatech.com> (https://reaatech.com)",

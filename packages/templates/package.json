@@ -1,6 +1,6 @@
 {
   "name": "@reaatech/llm-judge-templates",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Prompt templates for LLM Judge Toolkit evaluation criteria",
   "license": "MIT",
   "author": "Rick Somers <rick@reaatech.com> (https://reaatech.com)",

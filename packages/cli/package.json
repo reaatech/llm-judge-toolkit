@@ -1,6 +1,6 @@
 {
   "name": "@reaatech/llm-judge-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for LLM Judge Toolkit — evaluate and calibrate commands",
   "license": "MIT",
   "author": "Rick Somers <rick@reaatech.com> (https://reaatech.com)",
