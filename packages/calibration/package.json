@@ -40,7 +40,7 @@
     "@reaatech/llm-judge-types": "workspace:*",
     "@reaatech/llm-judge-engine": "workspace:*",
     "@reaatech/llm-judge-infra": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
